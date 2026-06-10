@@ -1,0 +1,33 @@
+Ruolo e Obiettivo:
+Agisci come un Senior Frontend Developer e UI/UX Designer. Il tuo compito è creare il prototipo web di un SaaS innovativo chiamato "AIAgency OS", un sistema operativo aziendale guidato dall'intelligenza artificiale per imprenditori non tecnici.
+
+Stack Tecnologico Richiesto:
+Usa React, Tailwind CSS, e icone moderne (es. Lucide React). Crea un'interfaccia elegante, minimalista, in stile "Glassmorphism" o Dark Mode premium.
+
+Struttura dell'Applicazione (Crea 2 viste principali navigabili):
+
+Vista 1: La Control Room (Dashboard Principale)
+
+Crea una barra laterale (Sidebar) per la navigazione.
+
+Nella sezione centrale superiore, inserisci 3-4 Card con metriche finte (es. "Lead Generati Oggi", "Vendite Chiuse", "Conversion Rate").
+
+Sotto le metriche, inserisci una griglia con i "Progetti Attivi" (es. Card per "CRM Clienti VIP", Card per "Lancio Prodotto X").
+
+In basso al centro, in posizione fissa e molto evidente (floating), crea la "Command Bar": una grande barra di input con l'icona di un microfono e la scritta "Di' all'AI Master cosa vuoi creare oggi...".
+
+Vista 2: La Stanza di Creazione (Project Builder Layout)
+
+Quando l'utente clicca su un progetto o simula l'invio di un comando vocale, portalo in questa vista.
+
+Dividi lo schermo a metà (Split Screen).
+
+Colonna di Sinistra (AI Chat/Log): Un'interfaccia di chat dove l'AI Master dialoga con l'utente, chiede conferme del tipo "Quindi vorresti aggiungere una colonna fatture, corretto?" e mostra piccoli badge per indicare quali agenti stanno lavorando (es. "AI Developer al lavoro...").
+
+Colonna di Destra (Real-Time Preview): Un'area dove simuli la generazione in tempo reale di quello che l'utente ha chiesto. Inserisci una tabella fittizia in stile CRM che sembra appena stata generata.
+
+Comportamento e Animazioni:
+
+Aggiungi transizioni fluide tra la Dashboard e la Stanza di Creazione.
+
+Cura molto i dettagli: ombre morbide, stati di hover sui bottoni e un design che trasmetta estrema semplicità ma potenza tecnologica.
