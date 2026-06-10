@@ -62,15 +62,65 @@
 }
 
 :root {
-  --button-outline: rgba(255,255,255, .10);
-  --badge-outline: rgba(255,255,255, .05);
+  --background: 210 20% 98%; /* Light, premium tint */
+  --foreground: 226 50% 10%;
 
-  --opaque-button-border-intensity: 9;
+  --border: 210 20% 90%;
 
-  --elevate-1: rgba(255,255,255, .04);
-  --elevate-2: rgba(255,255,255, .09);
+  --card: 0 0% 100%;
+  --card-foreground: 226 50% 10%;
+  --card-border: 210 20% 92%;
 
-  /* Dark premium aesthetic */
+  --sidebar: 210 20% 96%;
+  --sidebar-foreground: 226 50% 10%;
+  --sidebar-border: 210 20% 90%;
+  --sidebar-primary: 270 100% 60%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 210 20% 90%;
+  --sidebar-accent-foreground: 226 50% 10%;
+  --sidebar-ring: 270 100% 60%;
+
+  --popover: 0 0% 100%;
+  --popover-foreground: 226 50% 10%;
+  --popover-border: 210 20% 90%;
+
+  --primary: 270 100% 60%;
+  --primary-foreground: 0 0% 100%;
+
+  --secondary: 190 100% 40%;
+  --secondary-foreground: 0 0% 100%;
+
+  --muted: 210 20% 92%;
+  --muted-foreground: 226 20% 40%;
+
+  --accent: 45 100% 50%;
+  --accent-foreground: 0 0% 10%;
+
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+
+  --input: 210 20% 90%;
+  --ring: 270 100% 60%;
+
+  --chart-1: 270 100% 60%;
+  --chart-2: 190 100% 50%;
+  --chart-3: 45 100% 50%;
+  --chart-4: 150 100% 45%;
+  --chart-5: 0 84% 60%;
+
+  --app-font-sans: 'Outfit', sans-serif;
+  --app-font-serif: Georgia, serif;
+  --app-font-mono: 'Space Grotesk', monospace;
+  --radius: 1rem;
+
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(0, 0, 0, 0.05);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
+  
+  --grid-line: rgba(0, 0, 0, 0.03);
+}
+
+.dark {
   --background: 226 50% 4%;
   --foreground: 0 0% 98%;
 
@@ -93,44 +143,16 @@
   --popover-foreground: 0 0% 98%;
   --popover-border: 226 30% 15%;
 
-  --primary: 270 100% 60%; /* Electric purple */
-  --primary-foreground: 0 0% 100%;
-
-  --secondary: 190 100% 50%; /* Cyan */
-  --secondary-foreground: 0 0% 10%;
-
   --muted: 226 30% 12%;
   --muted-foreground: 226 20% 65%;
 
-  --accent: 45 100% 50%; /* Gold */
-  --accent-foreground: 0 0% 10%;
-
-  --destructive: 0 84% 60%;
-  --destructive-foreground: 0 0% 100%;
-
   --input: 226 30% 15%;
-  --ring: 270 100% 60%;
   
-  --chart-1: 270 100% 60%;
-  --chart-2: 190 100% 50%;
-  --chart-3: 45 100% 50%;
-  --chart-4: 150 100% 45%;
-  --chart-5: 0 84% 60%;
-
-  --app-font-sans: 'Outfit', sans-serif;
-  --app-font-serif: Georgia, serif;
-  --app-font-mono: 'Space Grotesk', monospace;
-  --radius: 1rem;
-
-  --shadow-sm: 0 4px 12px rgba(0,0,0,0.5);
-  --shadow: 0 8px 24px rgba(0,0,0,0.6);
-  --shadow-md: 0 12px 32px rgba(0,0,0,0.7);
-  --shadow-lg: 0 16px 48px rgba(0,0,0,0.8);
-}
-
-.dark {
-  --background: 226 50% 4%;
-  --foreground: 0 0% 98%;
+  --glass-bg: rgba(10, 15, 30, 0.6);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  
+  --grid-line: rgba(255, 255, 255, 0.02);
 }
 
 @layer base {
@@ -144,11 +166,11 @@
 }
 
 .glass-panel {
-  background: rgba(10, 15, 30, 0.6);
+  background: var(--glass-bg);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
 }
 
 .glow-border {
@@ -158,7 +180,7 @@
   content: "";
   position: absolute;
   inset: -1px;
-  background: linear-gradient(135deg, hsl(270 100% 60% / 0.5), transparent, hsl(190 100% 50% / 0.5));
+  background: linear-gradient(135deg, hsl(var(--primary) / 0.5), transparent, hsl(var(--secondary) / 0.5));
   border-radius: inherit;
   z-index: -1;
   opacity: 0.5;
