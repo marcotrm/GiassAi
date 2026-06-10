@@ -1,0 +1,24 @@
+Sei un Senior Full-Stack Developer ed esperto UI/UX. Devi creare un prototipo avanzato, interattivo e navigabile per "GiassAi", un rivoluzionario ecosistema aziendale guidato dall'intelligenza artificiale per imprenditori non tecnici. GiassAi permette di generare tramite comandi vocali/testuali tre pilastri fondamentali: Gestionali (CRM/ERP), Landing Page/Funnel e complessi Workflow di automazione (in stile n8n/Make). Ogni modulo vive in progetti separati ma l'AI permette di collegarli dichiarando semplicemente l'intento.
+
+Stack Tecnologico:
+React, Tailwind CSS, animazioni fluide con Framer Motion (o librerie simili) e icone moderne (es. Lucide React). Il design deve essere Premium Dark Mode con accenti futuristici (es. sfumature neon ciano/viola o stile Glassmorphism), minimalista e pulito per trasmettere semplicità e controllo.
+
+Struttura della Web App (Crea queste viste fondamentali e la navigazione tra di esse):
+
+1. La Control Room Principale (Dashboard GiassAi)
+- Logo visibile e brandizzato "GiassAi" nella barra superiore o laterale.
+- Barra Laterale (Sidebar): Voci di navigazione chiare: Control Room, I Miei Gestionali, Landing & Funnel, Workflow, Impostazioni.
+- Area Statistiche (KPI): 4 Card con dati fittizi ma realistici per mostrare il tracciamento delle performance (es. "Lead Generati Oggi", "Fatturato Tracciato (10%)", "Automazioni Attive", "Conversion Rate").
+- La Griglia dei Progetti: Una vista a schede dei progetti attivi nell'ecosistema dell'utente. Esempi: "CRM Clienti VIP", "Funnel Lancio Giugno", "Sincronizzazione Stripe-CRM (Workflow)".
+- L'Elemento Chiave: In basso al centro, in posizione fluttuante (floating) e sempre visibile, inserisci la "GiassAi Command Bar". È una barra di input elegante con l'icona di un microfono acceso e il testo: "Di' a GiassAi cosa vuoi creare o collegare oggi...".
+
+2. La Stanza di Creazione (Project Builder Layout)
+Questa vista si attiva quando l'utente clicca su un progetto o simula l'invio di un comando vocale dalla barra. Lo schermo deve essere diviso esattamente a metà (Split Screen):
+- Lato Sinistro (GiassAi Master Chat): Un'interfaccia di chat dove la "AI Master" dialoga con l'imprenditore. Simula un flusso in cui l'utente dà istruzioni parlate un po' confuse e l'AI Master esegue un "Recap Attivo" chiedendo conferma: "Quindi, ricapitolando: vorresti aggiungere una colonna per le scadenze dei pagamenti e inviare un WhatsApp in automatico. È corretto?". Includi un bottone visibile "Sì, procedi". Mostra anche dei piccoli badge animati che indicano lo stato degli agenti interni (es. "AI Web Developer sta scrivendo il codice...", "AI Copywriter sta ottimizzando i testi...").
+- Lato Destro (Anteprima Real-Time "Fantasma"): In quest'area non devono esserci barre di caricamento statiche. Simula visivamente che gli elementi si stiano "disegnando" e componendo da soli sullo schermo in tempo reale in base alla chat di sinistra.
+  * Se l'utente simula la creazione di un GESTIONALE: fai apparire gradualmente le righe e le colonne di una tabella dati.
+  * Se simula una LANDING PAGE: fai apparire i blocchi (Hero section, form di contatto) che si riempiono di testo.
+  * Se simula un WORKFLOW: mostra la comparsa di nodi grafici (Trigger -> Condizione -> Azione) che si collegano tra loro con delle frecce animate.
+
+3. Il Flusso di Collegamento dei Progetti
+- Inserisci un pulsante o un'azione simulata in cui l'utente chiede: "Collega la Landing dei Lead al mio CRM". Mostra l'AI Master di GiassAi che conferma l'operazione sotto il cofano, e l'area di destra che mostra graficamente il "ponte" logico stabilito tra i due progetti separati.
