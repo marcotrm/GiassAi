@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, Bot, CheckCircle2, Play, Loader2, Code, Database, MousePointerClick, Network, Link as LinkIcon, Zap } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { CreationType } from "../App";
+import { sendToGiassAi } from "../lib/api";
 
 interface CreationRoomProps {
   type: CreationType;
@@ -50,9 +51,14 @@ export default function CreationRoom({ type, onNavigate }: CreationRoomProps) {
     e.preventDefault();
     if (!inputText.trim()) return;
 
+    const submitted = inputText;
+
     setMessages(prev => [...prev, { role: "user", text: inputText }]);
     setInputText("");
     setIsGenerating(true);
+
+    // Additive: send the text to the live GiassAi endpoint and log the JSON.
+    void sendToGiassAi(submitted);
 
     const t1 = setTimeout(() => {
       setMessages(prev => [...prev, { role: "ai", text: recapText }]);

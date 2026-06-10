@@ -3,6 +3,7 @@ import { Mic, Send, Sun, Moon } from "lucide-react";
 import Sidebar from "./Sidebar";
 import { SidebarSection, CreationType } from "../App";
 import { useTheme } from "./ThemeProvider";
+import { sendToGiassAi } from "../lib/api";
 
 interface DashboardShellProps {
   currentSection: SidebarSection;
@@ -29,6 +30,10 @@ export default function DashboardShell({ currentSection, onNavigate, onOpenCreat
     }
     
     onOpenCreation(type);
+
+    // Additive: send the typed text to the live GiassAi endpoint and log the JSON.
+    void sendToGiassAi(command);
+
     setCommand("");
   };
 
