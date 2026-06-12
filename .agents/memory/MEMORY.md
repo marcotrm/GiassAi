@@ -1,0 +1,1 @@
+- [Expo workflow port probe](expo-workflow-port-probe.md) — Expo dev workflow "didn't open port" despite Metro starting; env-level, not app code. Sandbox kills standalone Metro, logs freeze. Don't loop on config retries — verify via typecheck + static review.
