@@ -3,7 +3,7 @@ import { Mic, Send, Sun, Moon } from "lucide-react";
 import Sidebar from "./Sidebar";
 import { SidebarSection, CreationType } from "../App";
 import { useTheme } from "./ThemeProvider";
-import { sendToGiassAi } from "../lib/api";
+import { sendCommandToGiassAi } from "../lib/api";
 
 interface DashboardShellProps {
   currentSection: SidebarSection;
@@ -27,12 +27,14 @@ export default function DashboardShell({ currentSection, onNavigate, onOpenCreat
       type = "landing";
     } else if (text.includes("workflow") || text.includes("automazione") || text.includes("collega") || text.includes("stripe")) {
       type = "workflow";
+    } else if (text.includes("video") || text.includes("piano editoriale") || text.includes("content") || text.includes("reels") || text.includes("tiktok")) {
+      type = "video_ideas";
     }
     
     onOpenCreation(type);
 
     // Additive: send the typed text to the live GiassAi endpoint and log the JSON.
-    void sendToGiassAi(command);
+    void sendCommandToGiassAi(command);
 
     setCommand("");
   };

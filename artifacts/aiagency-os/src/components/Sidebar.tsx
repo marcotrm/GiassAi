@@ -1,5 +1,6 @@
-import { LayoutDashboard, Database, MousePointerClick, Network, Settings, Zap } from "lucide-react";
+import { LayoutDashboard, Database, MousePointerClick, Network, Settings, Zap, LogOut } from "lucide-react";
 import { SidebarSection } from "../App";
+import { useAuthContext } from "../contexts/AuthContext";
 
 interface SidebarProps {
   currentSection: SidebarSection;
@@ -7,6 +8,8 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ currentSection, onNavigate }: SidebarProps) {
+  const { user, signOut } = useAuthContext();
+
   const navItems = [
     { id: "control", icon: LayoutDashboard, label: "Control Room" },
     { id: "gestionali", icon: Database, label: "I Miei Gestionali" },
@@ -14,6 +17,12 @@ export default function Sidebar({ currentSection, onNavigate }: SidebarProps) {
     { id: "workflow", icon: Network, label: "Workflow" },
     { id: "impostazioni", icon: Settings, label: "Impostazioni" },
   ] as const;
+
+  // Derive display name and avatar initial from the user's email or metadata
+  const displayName = user?.user_metadata?.full_name
+    || user?.email?.split("@")[0]
+    || "Utente";
+  const avatarInitial = displayName.charAt(0).toUpperCase();
 
   return (
     <aside className="w-64 border-r border-border glass-panel flex flex-col justify-between p-4 z-10 relative bg-sidebar text-sidebar-foreground">
@@ -44,14 +53,22 @@ export default function Sidebar({ currentSection, onNavigate }: SidebarProps) {
         </nav>
       </div>
 
-      <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-card border border-border hover:bg-muted cursor-pointer transition-colors" data-testid="user-profile">
-        <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center border border-border overflow-hidden">
-          <img src="https://api.dicebear.com/7.x/initials/svg?seed=Admin&backgroundColor=transparent" alt="Avatar" className="w-full h-full" />
+      <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-card border border-border transition-colors" data-testid="user-profile">
+        <div className="w-10 h-10 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center text-primary font-bold text-sm shrink-0">
+          {avatarInitial}
         </div>
-        <div className="flex flex-col text-left">
-          <span className="text-sm font-semibold">Admin</span>
-          <span className="text-xs text-primary">Chief of Staff</span>
+        <div className="flex flex-col text-left min-w-0 flex-1">
+          <span className="text-sm font-semibold truncate">{displayName}</span>
+          <span className="text-xs text-muted-foreground truncate">{user?.email}</span>
         </div>
+        <button
+          onClick={() => signOut()}
+          className="p-2 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors shrink-0"
+          title="Esci"
+          data-testid="sign-out-button"
+        >
+          <LogOut className="w-4 h-4" />
+        </button>
       </div>
     </aside>
   );

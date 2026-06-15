@@ -1,24 +1,50 @@
-// Calls the GiassAi backend (OpenAI JSON endpoint) and logs the parsed JSON
-// response to the browser console. The API server is served at the absolute
-// "/api" path on the same origin as this app, so a relative URL is all we need
-// (the shared proxy handles cross-service routing).
-export async function sendToGiassAi(message: string): Promise<void> {
-  try {
-    const res = await fetch("/api/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message }),
-    });
+import { supabase } from "../lib/supabase";
 
-    if (!res.ok) {
-      const errBody = await res.json().catch(() => ({}));
-      console.error("[GiassAi] Richiesta fallita:", res.status, errBody);
-      return;
-    }
+export const API_BASE = "/api";
 
-    const data = await res.json();
-    console.log("[GiassAi] Risposta JSON:", data);
-  } catch (err) {
-    console.error("[GiassAi] Errore di rete:", err);
+export async function sendCommandToGiassAi(
+  message: string,
+): Promise<{ conversationId?: string }> {
+  const { data: { session } } = await supabase.auth.getSession();
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (session?.access_token) {
+    headers["Authorization"] = `Bearer ${session.access_token}`;
   }
+
+  const res = await fetch(`${API_BASE}/chat`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ message }),
+  });
+
+  if (!res.ok) {
+    throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+  }
+
+  const reader = res.body?.getReader();
+  const decoder = new TextDecoder();
+  let conversationId: string | undefined;
+
+  if (reader) {
+    let buffer = "";
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || "";
+      for (const line of lines) {
+        if (line.startsWith("data: ")) {
+          try {
+            const parsed = JSON.parse(line.slice(6));
+            if (parsed.type === "done") conversationId = parsed.conversationId;
+          } catch {
+            // ignore parse errors
+          }
+        }
+      }
+    }
+  }
+
+  return { conversationId };
 }

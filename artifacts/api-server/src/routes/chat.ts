@@ -1,75 +1,160 @@
-import { Router, type IRouter } from "express";
+import { Router, type IRouter, type Request, type Response } from "express";
 import { z } from "zod";
-import OpenAI from "openai";
+import { db } from "@workspace/db";
+import { conversations, chatMessages } from "@workspace/db/schema";
+import { eq, asc, desc } from "drizzle-orm";
+import { routeToAgent } from "../services/ai/agent-router.js";
+import { runPmAgent } from "../services/ai/pm-agent.js";
+import type { ChatMessage as AiChatMessage } from "../services/ai/model-adapter.js";
+import { logger } from "../lib/logger.js";
+import { requireAuth } from "../middlewares/auth.js";
 
-// ============================================================================
-// SYSTEM PROMPT  ——  MODIFICA QUI / EDIT THIS
-// ----------------------------------------------------------------------------
-// Questo testo viene inviato al modello a ogni richiesta. Sostituiscilo con le
-// tue istruzioni per GiassAi.
-//
-// IMPORTANTE (requisito JSON mode): poiché questo endpoint forza l'output in
-// formato JSON (response_format: { type: "json_object" }), il System Prompt
-// DEVE indicare esplicitamente al modello di rispondere in JSON, altrimenti
-// l'API OpenAI rifiuta la richiesta. Mantieni la parola "JSON" qui sotto.
-// ============================================================================
-const SYSTEM_PROMPT = `Sei GiassAi, un assistente che aiuta gli utenti a creare gestionali, landing page e workflow di automazione.
-Rispondi SEMPRE ed esclusivamente con un oggetto JSON valido che descriva la richiesta dell'utente.`;
-
-const ChatRequest = z.object({
-  message: z.string().trim().min(1, "Il campo 'message' è obbligatorio."),
+const SendMessageBody = z.object({
+  conversationId: z.string().uuid().optional(),
+  message: z.string().trim().min(1),
 });
 
 const router: IRouter = Router();
 
-router.post("/chat", async (req, res) => {
-  const parsed = ChatRequest.safeParse(req.body);
+// POST /chat — SSE streaming chat with PM Agent
+router.post("/chat", requireAuth, async (req: Request, res: Response) => {
+  const parsed = SendMessageBody.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({
-      error: "Richiesta non valida: 'message' deve essere una stringa non vuota.",
-    });
+    res.status(400).json({ error: "Invalid request", details: parsed.error.flatten() });
+    return;
   }
 
-  const apiKey = process.env["OPENAI_API_KEY"];
-  if (!apiKey) {
-    return res.status(500).json({
-      error:
-        "OPENAI_API_KEY non configurata. Aggiungila come Replit Secret per abilitare GiassAi.",
-    });
-  }
-
-  const openai = new OpenAI({ apiKey });
+  const { message } = parsed.data;
+  let { conversationId } = parsed.data;
 
   try {
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      response_format: { type: "json_object" },
-      messages: [
-        { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: parsed.data.message },
-      ],
+    // Create conversation if needed
+    if (!conversationId) {
+      const [conv] = await db
+        .insert(conversations)
+        .values({
+          orgId: req.user!.orgId,
+          userId: req.user!.id,
+          title: message.slice(0, 100),
+        })
+        .returning();
+      conversationId = conv!.id;
+    }
+
+    // Save user message
+    await db.insert(chatMessages).values({
+      conversationId,
+      role: "user",
+      content: message,
     });
 
-    const content = completion.choices[0]?.message?.content;
-    if (!content) {
-      return res.status(502).json({ error: "Risposta vuota da OpenAI." });
-    }
+    // Load conversation history (last 20 messages)
+    const history = await db
+      .select({ role: chatMessages.role, content: chatMessages.content })
+      .from(chatMessages)
+      .where(eq(chatMessages.conversationId, conversationId))
+      .orderBy(asc(chatMessages.createdAt))
+      .limit(20);
 
-    let data: unknown;
-    try {
-      data = JSON.parse(content);
-    } catch {
-      return res
-        .status(502)
-        .json({ error: "OpenAI non ha restituito un JSON valido.", raw: content });
-    }
+    const conversationHistory: AiChatMessage[] = history
+      .slice(0, -1) // Exclude the message we just inserted
+      .map((m) => ({
+        role: m.role as "user" | "assistant",
+        content: m.content,
+      }));
 
-    return res.json(data);
+    // Set SSE headers
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.setHeader("X-Accel-Buffering", "no");
+    res.flushHeaders();
+
+    // Handle client disconnect
+    const abortController = new AbortController();
+    req.on("close", () => abortController.abort());
+
+    const agentRole = routeToAgent(conversationHistory, message);
+
+    let fullResponse = "";
+
+    await runPmAgent(
+      { conversationHistory, userMessage: message },
+      {
+        signal: abortController.signal,
+        onToken(token) {
+          fullResponse += token;
+          res.write(`data: ${JSON.stringify({ type: "token", content: token })}\n\n`);
+        },
+        async onDone(_fullText, usage) {
+          // Save assistant message to DB
+          const [saved] = await db
+            .insert(chatMessages)
+            .values({
+              conversationId: conversationId!,
+              role: "assistant",
+              content: fullResponse,
+              agentRole,
+              modelUsed: "claude-haiku-4-5-20250609",
+              tokensIn: usage.tokensIn,
+              tokensOut: usage.tokensOut,
+            })
+            .returning();
+
+          res.write(
+            `data: ${JSON.stringify({
+              type: "done",
+              conversationId,
+              messageId: saved!.id,
+            })}\n\n`,
+          );
+          res.end();
+        },
+        onError(error) {
+          logger.error({ err: error }, "PM Agent streaming error");
+          res.write(`data: ${JSON.stringify({ type: "error", message: error.message })}\n\n`);
+          res.end();
+        },
+      },
+    );
   } catch (err) {
-    const message =
-      err instanceof Error ? err.message : "Errore sconosciuto nella chiamata a OpenAI.";
-    return res.status(502).json({ error: message });
+    logger.error({ err }, "Chat endpoint error");
+    if (!res.headersSent) {
+      res.status(500).json({ error: "Internal server error" });
+    } else {
+      res.write(`data: ${JSON.stringify({ type: "error", message: "Internal server error" })}\n\n`);
+      res.end();
+    }
   }
+});
+
+// GET /chat/conversations — list conversations
+router.get("/chat/conversations", requireAuth, async (req: Request, res: Response) => {
+  const result = await db
+    .select()
+    .from(conversations)
+    .where(eq(conversations.orgId, req.user!.orgId))
+    .orderBy(desc(conversations.createdAt))
+    .limit(50);
+
+  res.json(result);
+});
+
+// GET /chat/conversations/:id/messages — get messages for a conversation
+router.get("/chat/conversations/:id/messages", requireAuth, async (req: Request, res: Response) => {
+  const id = req.params["id"];
+  if (!id) {
+    res.status(400).json({ error: "Missing conversation ID" });
+    return;
+  }
+
+  const result = await db
+    .select()
+    .from(chatMessages)
+    .where(eq(chatMessages.conversationId, id))
+    .orderBy(asc(chatMessages.createdAt));
+
+  res.json(result);
 });
 
 export default router;
