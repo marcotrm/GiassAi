@@ -39,7 +39,7 @@ if (existsSync(frontendPath)) {
   logger.info({ path: frontendPath }, "Serving frontend static files");
   app.use(express.static(frontendPath));
   // SPA fallback: any non-API route serves index.html
-  app.get("*", (_req, res) => {
+  app.use((_req, res) => {
     res.sendFile(path.join(frontendPath, "index.html"));
   });
 }
