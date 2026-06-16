@@ -145,7 +145,8 @@ export function compileToDDL(def: GestionaleSchemaDef, orgId: string): CompiledS
     statements.push(`ALTER TABLE ${s}.${q(table.name)} ENABLE ROW LEVEL SECURITY`);
     statements.push(
       `CREATE POLICY ${q(`org_isolation_${table.name}`.slice(0, 58))} ON ${s}.${q(table.name)} ` +
-        `USING ("org_id" IN (SELECT org_id FROM public.org_members WHERE user_id = auth.uid()))`,
+        // org_members.user_id is text, auth.uid() is uuid → cast to compare.
+        `USING ("org_id" IN (SELECT org_id FROM public.org_members WHERE user_id = auth.uid()::text))`,
     );
   }
 
