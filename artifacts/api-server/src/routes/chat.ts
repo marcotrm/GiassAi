@@ -3,8 +3,10 @@ import { z } from "zod";
 import { db } from "@workspace/db";
 import { conversations, chatMessages } from "@workspace/db/schema";
 import { eq, asc, desc } from "drizzle-orm";
-import { routeToAgent } from "../services/ai/agent-router.js";
+import { routeToAgent, classifyCreationIntent } from "../services/ai/agent-router.js";
 import { runPmAgent } from "../services/ai/pm-agent.js";
+import { generateGestionale } from "../services/ai/gestionale/orchestrator.js";
+import { MODELS } from "../services/ai/models.js";
 import type { ChatMessage as AiChatMessage } from "../services/ai/model-adapter.js";
 import { logger } from "../lib/logger.js";
 import { requireAuth } from "../middlewares/auth.js";
@@ -12,6 +14,9 @@ import { requireAuth } from "../middlewares/auth.js";
 const SendMessageBody = z.object({
   conversationId: z.string().uuid().optional(),
   message: z.string().trim().min(1),
+  // Set when the chat happens inside a CreationRoom — enables the Architect handoff.
+  projectId: z.string().uuid().optional(),
+  projectType: z.enum(["gestionale", "landing", "workflow", "video_ideas"]).optional(),
 });
 
 const router: IRouter = Router();
@@ -24,7 +29,7 @@ router.post("/chat", requireAuth, async (req: Request, res: Response) => {
     return;
   }
 
-  const { message } = parsed.data;
+  const { message, projectId, projectType } = parsed.data;
   let { conversationId } = parsed.data;
 
   try {
@@ -36,6 +41,7 @@ router.post("/chat", requireAuth, async (req: Request, res: Response) => {
           orgId: req.user!.orgId,
           userId: req.user!.id,
           title: message.slice(0, 100),
+          ...(projectId ? { projectId } : {}),
         })
         .returning();
       conversationId = conv!.id;
@@ -95,7 +101,7 @@ router.post("/chat", requireAuth, async (req: Request, res: Response) => {
               role: "assistant",
               content: fullResponse,
               agentRole,
-              modelUsed: "claude-haiku-4-5-20250609",
+              modelUsed: MODELS.pm,
               tokensIn: usage.tokensIn,
               tokensOut: usage.tokensOut,
             })
@@ -108,6 +114,46 @@ router.post("/chat", requireAuth, async (req: Request, res: Response) => {
               messageId: saved!.id,
             })}\n\n`,
           );
+
+          // Architect handoff: only inside a gestionale CreationRoom, and only
+          // once the user confirms. Generation streams on the same connection.
+          if (projectType === "gestionale" && projectId) {
+            try {
+              const intent = await classifyCreationIntent(
+                conversationHistory,
+                message,
+                "gestionale",
+                abortController.signal,
+              );
+              if (intent.confirmed && intent.brief) {
+                res.write(`data: ${JSON.stringify({ type: "generating" })}\n\n`);
+                const result = await generateGestionale(
+                  projectId,
+                  req.user!.orgId,
+                  intent.brief,
+                  { signal: abortController.signal },
+                );
+                res.write(
+                  `data: ${JSON.stringify({
+                    type: "gestionale_ready",
+                    projectId,
+                    schemaId: result.schemaId,
+                    version: result.version,
+                    def: result.def,
+                  })}\n\n`,
+                );
+              }
+            } catch (genErr) {
+              logger.error({ err: genErr, projectId }, "Gestionale handoff failed");
+              res.write(
+                `data: ${JSON.stringify({
+                  type: "generation_error",
+                  message: genErr instanceof Error ? genErr.message : "Generation failed",
+                })}\n\n`,
+              );
+            }
+          }
+
           res.end();
         },
         onError(error) {
@@ -142,7 +188,7 @@ router.get("/chat/conversations", requireAuth, async (req: Request, res: Respons
 
 // GET /chat/conversations/:id/messages — get messages for a conversation
 router.get("/chat/conversations/:id/messages", requireAuth, async (req: Request, res: Response) => {
-  const id = req.params["id"];
+  const id = req.params["id"] ? String(req.params["id"]) : "";
   if (!id) {
     res.status(400).json({ error: "Missing conversation ID" });
     return;

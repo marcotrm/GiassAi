@@ -2,6 +2,48 @@ import { supabase } from "../lib/supabase";
 
 export const API_BASE = "/api";
 
+async function authHeaders(): Promise<Record<string, string>> {
+  const { data: { session } } = await supabase.auth.getSession();
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (session?.access_token) headers["Authorization"] = `Bearer ${session.access_token}`;
+  return headers;
+}
+
+/** Authenticated JSON fetch against the API. Throws on non-2xx. */
+export async function authedFetch<T = unknown>(path: string, init?: RequestInit): Promise<T> {
+  const headers = { ...(await authHeaders()), ...(init?.headers as Record<string, string> | undefined) };
+  const res = await fetch(`${API_BASE}${path}`, { ...init, headers });
+  if (!res.ok) {
+    let detail = "";
+    try {
+      detail = (await res.json())?.message ?? "";
+    } catch {
+      /* ignore */
+    }
+    throw new Error(detail || `HTTP ${res.status}`);
+  }
+  return res.json() as Promise<T>;
+}
+
+export interface Project {
+  id: string;
+  name: string;
+  type: "gestionale" | "landing" | "workflow" | "video_ideas";
+  status: string;
+}
+
+export function createProject(body: {
+  name: string;
+  type: Project["type"];
+  description?: string;
+}): Promise<Project> {
+  return authedFetch<Project>("/projects", { method: "POST", body: JSON.stringify(body) });
+}
+
+export function deployGestionale(schemaId: string): Promise<{ schemaName: string; statementsRun: number; seededRows: number }> {
+  return authedFetch(`/gestionali/${schemaId}/deploy`, { method: "POST" });
+}
+
 export async function sendCommandToGiassAi(
   message: string,
 ): Promise<{ conversationId?: string }> {

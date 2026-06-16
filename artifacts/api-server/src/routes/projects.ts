@@ -50,7 +50,7 @@ router.post("/projects", requireAuth, async (req: Request, res: Response) => {
 });
 
 router.get("/projects/:id", requireAuth, async (req: Request, res: Response) => {
-  const id = req.params["id"];
+  const id = req.params["id"] ? String(req.params["id"]) : "";
   if (!id) {
     res.status(400).json({ error: "Missing project ID" });
     return;
@@ -71,7 +71,7 @@ router.get("/projects/:id", requireAuth, async (req: Request, res: Response) => 
 });
 
 router.patch("/projects/:id", requireAuth, async (req: Request, res: Response) => {
-  const id = req.params["id"];
+  const id = req.params["id"] ? String(req.params["id"]) : "";
   if (!id) {
     res.status(400).json({ error: "Missing project ID" });
     return;
@@ -98,7 +98,7 @@ router.patch("/projects/:id", requireAuth, async (req: Request, res: Response) =
 });
 
 router.delete("/projects/:id", requireAuth, async (req: Request, res: Response) => {
-  const id = req.params["id"];
+  const id = req.params["id"] ? String(req.params["id"]) : "";
   if (!id) {
     res.status(400).json({ error: "Missing project ID" });
     return;

@@ -9,8 +9,43 @@ export interface ChatMessage {
   createdAt: string;
 }
 
+// Minimal mirror of the backend GestionaleSchemaDef, enough to render a preview.
+export interface GestionaleColumnView {
+  name: string;
+  label: string;
+  type: string;
+  nullable?: boolean;
+  unique?: boolean;
+  relationTo?: string;
+  enumName?: string;
+}
+export interface GestionaleTableView {
+  name: string;
+  label: string;
+  description?: string;
+  primaryDisplayColumn: string;
+  columns: GestionaleColumnView[];
+}
+export interface GestionaleDef {
+  name: string;
+  tables: GestionaleTableView[];
+  relations: { type: string; from: string; to: string }[];
+  enums: { name: string; values: { value: string; label: string }[] }[];
+}
+
+export type GenerationState =
+  | { status: "idle" }
+  | { status: "generating" }
+  | { status: "ready"; schemaId: string; projectId: string; def: GestionaleDef }
+  | { status: "error"; message: string };
+
 interface UseChatStreamOptions {
   onError?: (error: string) => void;
+}
+
+interface SendExtra {
+  projectId?: string;
+  projectType?: string;
 }
 
 interface UseChatStreamReturn {
@@ -18,16 +53,22 @@ interface UseChatStreamReturn {
   conversationId: string | null;
   isStreaming: boolean;
   error: string | null;
-  sendMessage: (text: string) => void;
+  generation: GenerationState;
+  sendMessage: (text: string, extra?: SendExtra) => void;
   clearMessages: () => void;
 }
 
 interface SSEEvent {
-  type: "token" | "done" | "error";
+  type: "token" | "done" | "error" | "generating" | "gestionale_ready" | "generation_error";
   content?: string;
   conversationId?: string;
   messageId?: string;
   message?: string;
+  // gestionale_ready payload
+  projectId?: string;
+  schemaId?: string;
+  version?: number;
+  def?: GestionaleDef;
 }
 
 export function useChatStream(options?: UseChatStreamOptions): UseChatStreamReturn {
@@ -35,6 +76,7 @@ export function useChatStream(options?: UseChatStreamOptions): UseChatStreamRetu
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [isStreaming, setIsStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [generation, setGeneration] = useState<GenerationState>({ status: "idle" });
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -44,7 +86,7 @@ export function useChatStream(options?: UseChatStreamOptions): UseChatStreamRetu
   }, []);
 
   const sendMessage = useCallback(
-    async (text: string) => {
+    async (text: string, extra?: SendExtra) => {
       setError(null);
 
       const userMsg: ChatMessage = {
@@ -79,7 +121,12 @@ export function useChatStream(options?: UseChatStreamOptions): UseChatStreamRetu
         const res = await fetch(`${API_BASE}/chat`, {
           method: "POST",
           headers,
-          body: JSON.stringify({ conversationId, message: text }),
+          body: JSON.stringify({
+            conversationId,
+            message: text,
+            ...(extra?.projectId ? { projectId: extra.projectId } : {}),
+            ...(extra?.projectType ? { projectType: extra.projectType } : {}),
+          }),
           signal: controller.signal,
         });
 
@@ -129,6 +176,19 @@ export function useChatStream(options?: UseChatStreamOptions): UseChatStreamRetu
                 );
               }
               setIsStreaming(false);
+            } else if (event.type === "generating") {
+              setGeneration({ status: "generating" });
+            } else if (event.type === "gestionale_ready") {
+              if (event.schemaId && event.projectId && event.def) {
+                setGeneration({
+                  status: "ready",
+                  schemaId: event.schemaId,
+                  projectId: event.projectId,
+                  def: event.def,
+                });
+              }
+            } else if (event.type === "generation_error") {
+              setGeneration({ status: "error", message: event.message ?? "Generazione fallita" });
             } else if (event.type === "error") {
               setMessages((prev) =>
                 prev.filter((m) => m.id !== assistantPlaceholderId),
@@ -159,7 +219,8 @@ export function useChatStream(options?: UseChatStreamOptions): UseChatStreamRetu
     setMessages([]);
     setConversationId(null);
     setError(null);
+    setGeneration({ status: "idle" });
   }, []);
 
-  return { messages, conversationId, isStreaming, error, sendMessage, clearMessages };
+  return { messages, conversationId, isStreaming, error, generation, sendMessage, clearMessages };
 }

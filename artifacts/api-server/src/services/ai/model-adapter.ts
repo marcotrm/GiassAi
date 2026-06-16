@@ -114,6 +114,77 @@ async function streamAnthropic(
   callbacks.onDone(fullText, { tokensIn, tokensOut });
 }
 
+// ============================================================================
+// Non-streaming structured output (tool-use). Used by Architect/subagents to
+// return validated JSON instead of free text. Anthropic only.
+// ============================================================================
+
+export interface JsonTool {
+  name: string;
+  description: string;
+  /** JSON Schema for the tool input. Guides the model; Zod is the real gate. */
+  inputSchema: Record<string, unknown>;
+}
+
+export interface CompleteJsonOptions {
+  model: string;
+  system: string;
+  messages: ChatMessage[];
+  tool: JsonTool;
+  temperature?: number;
+  maxTokens?: number;
+  signal?: AbortSignal;
+}
+
+export interface CompleteJsonResult {
+  data: unknown;
+  usage: { tokensIn: number; tokensOut: number };
+}
+
+/**
+ * Forces the model to call `tool` and returns its raw input object.
+ * The caller is responsible for validating `data` with the authoritative Zod schema.
+ */
+export async function completeJson(opts: CompleteJsonOptions): Promise<CompleteJsonResult> {
+  const client = getAnthropicClient();
+
+  const nonSystemMsgs = opts.messages
+    .filter((m) => m.role !== "system")
+    .map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
+
+  const response = await client.messages.create(
+    {
+      model: opts.model,
+      max_tokens: opts.maxTokens ?? 8192,
+      temperature: opts.temperature ?? 0.2,
+      system: opts.system,
+      messages: nonSystemMsgs,
+      tools: [
+        {
+          name: opts.tool.name,
+          description: opts.tool.description,
+          input_schema: opts.tool.inputSchema as never,
+        },
+      ],
+      tool_choice: { type: "tool", name: opts.tool.name },
+    },
+    opts.signal ? { signal: opts.signal } : undefined,
+  );
+
+  const toolUse = response.content.find((block) => block.type === "tool_use");
+  if (!toolUse || toolUse.type !== "tool_use") {
+    throw new Error(`Model did not return a tool_use block for "${opts.tool.name}"`);
+  }
+
+  return {
+    data: toolUse.input,
+    usage: {
+      tokensIn: response.usage.input_tokens,
+      tokensOut: response.usage.output_tokens,
+    },
+  };
+}
+
 async function streamOpenAI(
   model: string,
   messages: ChatMessage[],

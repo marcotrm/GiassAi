@@ -1,8 +1,10 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft, Bot, CheckCircle2, Play, Loader2, Code, Database, MousePointerClick, Network, AlertCircle } from "lucide-react";
+import { ArrowLeft, Bot, Play, Loader2, Code, Database, MousePointerClick, Network, AlertCircle, Sparkles } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { CreationType } from "../App";
-import { useChatStream, type ChatMessage } from "../hooks/use-chat-stream";
+import { useChatStream } from "../hooks/use-chat-stream";
+import { createProject } from "../lib/api";
+import GestionaleSchemaPreview from "../components/GestionaleSchemaPreview";
 
 interface CreationRoomProps {
   type: CreationType;
@@ -36,6 +38,7 @@ export default function CreationRoom({ type, onNavigate }: CreationRoomProps) {
   ];
 
   const [inputText, setInputText] = useState("");
+  const projectIdRef = useRef<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -43,12 +46,29 @@ export default function CreationRoom({ type, onNavigate }: CreationRoomProps) {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [allMessages.length, chat.isStreaming]);
 
-  const handleSend = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!inputText.trim() || chat.isStreaming) return;
+  // Create the backing project lazily on the first message, then reuse its id.
+  async function ensureProject(firstMessage: string): Promise<string | null> {
+    if (projectIdRef.current) return projectIdRef.current;
+    try {
+      const project = await createProject({
+        name: `${TYPE_LABEL[type]} — ${firstMessage.slice(0, 40)}`,
+        type,
+      });
+      projectIdRef.current = project.id;
+      return project.id;
+    } catch {
+      return null; // chat still works; the Architect handoff just won't fire
+    }
+  }
 
-    chat.sendMessage(inputText.trim());
+  const handleSend = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const text = inputText.trim();
+    if (!text || chat.isStreaming) return;
     setInputText("");
+
+    const projectId = await ensureProject(text);
+    chat.sendMessage(text, { projectType: type, ...(projectId ? { projectId } : {}) });
   };
 
   const Icon = TYPE_ICON[type] ?? Database;
@@ -189,16 +209,48 @@ export default function CreationRoom({ type, onNavigate }: CreationRoomProps) {
           </h2>
         </header>
 
-        <div className="flex-1 flex items-center justify-center p-8 z-10">
-          <div className="flex flex-col items-center text-center max-w-md">
-            <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-6">
-              <Icon className="w-8 h-8 text-primary" />
+        <div className="flex-1 min-h-0 z-10">
+          {chat.generation.status === "ready" ? (
+            <GestionaleSchemaPreview
+              def={chat.generation.def}
+              schemaId={chat.generation.schemaId}
+            />
+          ) : (
+            <div className="flex h-full items-center justify-center p-8">
+              <div className="flex flex-col items-center text-center max-w-md">
+                {chat.generation.status === "generating" ? (
+                  <>
+                    <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-6">
+                      <Sparkles className="w-8 h-8 text-primary animate-pulse" />
+                    </div>
+                    <h3 className="text-xl font-bold text-foreground mb-2">Sto costruendo il tuo {TYPE_LABEL[type]}…</h3>
+                    <p className="text-muted-foreground text-sm flex items-center gap-2">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      L'Architetto sta progettando lo schema
+                    </p>
+                  </>
+                ) : chat.generation.status === "error" ? (
+                  <>
+                    <div className="w-16 h-16 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center mb-6">
+                      <AlertCircle className="w-8 h-8 text-rose-500" />
+                    </div>
+                    <h3 className="text-xl font-bold text-foreground mb-2">Generazione non riuscita</h3>
+                    <p className="text-muted-foreground text-sm">{chat.generation.message}</p>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-6">
+                      <Icon className="w-8 h-8 text-primary" />
+                    </div>
+                    <h3 className="text-xl font-bold text-foreground mb-2">{TYPE_LABEL[type]}</h3>
+                    <p className="text-muted-foreground text-sm">
+                      Descrivi il tuo progetto all'AI Master nella chat. Quando confermi, l'anteprima verrà generata qui.
+                    </p>
+                  </>
+                )}
+              </div>
             </div>
-            <h3 className="text-xl font-bold text-foreground mb-2">{TYPE_LABEL[type]}</h3>
-            <p className="text-muted-foreground text-sm">
-              Descrivi il tuo progetto all'AI Master nella chat. L'anteprima verrà generata quando il progetto sarà creato.
-            </p>
-          </div>
+          )}
         </div>
       </div>
     </motion.div>
