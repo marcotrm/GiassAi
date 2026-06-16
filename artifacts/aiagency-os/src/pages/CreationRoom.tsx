@@ -5,6 +5,7 @@ import { CreationType } from "../App";
 import { useChatStream } from "../hooks/use-chat-stream";
 import { createProject } from "../lib/api";
 import GestionaleSchemaPreview from "../components/GestionaleSchemaPreview";
+import WorkflowPreview from "../components/WorkflowPreview";
 
 interface CreationRoomProps {
   type: CreationType;
@@ -210,10 +211,15 @@ export default function CreationRoom({ type, onNavigate }: CreationRoomProps) {
         </header>
 
         <div className="flex-1 min-h-0 z-10">
-          {chat.generation.status === "ready" ? (
+          {chat.generation.status === "ready" && chat.generation.kind === "gestionale" ? (
             <GestionaleSchemaPreview
               def={chat.generation.def}
               schemaId={chat.generation.schemaId}
+            />
+          ) : chat.generation.status === "ready" && chat.generation.kind === "workflow" ? (
+            <WorkflowPreview
+              def={chat.generation.def}
+              workflowId={chat.generation.workflowId}
             />
           ) : (
             <div className="flex h-full items-center justify-center p-8">

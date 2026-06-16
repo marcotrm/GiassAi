@@ -6,6 +6,7 @@ import { eq, asc, desc } from "drizzle-orm";
 import { routeToAgent, classifyCreationIntent } from "../services/ai/agent-router.js";
 import { runPmAgent } from "../services/ai/pm-agent.js";
 import { generateGestionale } from "../services/ai/gestionale/orchestrator.js";
+import { generateWorkflow } from "../services/ai/workflow/orchestrator.js";
 import { MODELS } from "../services/ai/models.js";
 import type { ChatMessage as AiChatMessage } from "../services/ai/model-adapter.js";
 import { logger } from "../lib/logger.js";
@@ -115,36 +116,47 @@ router.post("/chat", requireAuth, async (req: Request, res: Response) => {
             })}\n\n`,
           );
 
-          // Architect handoff: only inside a gestionale CreationRoom, and only
-          // once the user confirms. Generation streams on the same connection.
-          if (projectType === "gestionale" && projectId) {
+          // Architect handoff: only inside a CreationRoom, once the user
+          // confirms. Generation streams on the same connection.
+          if (projectId && (projectType === "gestionale" || projectType === "workflow")) {
             try {
               const intent = await classifyCreationIntent(
                 conversationHistory,
                 message,
-                "gestionale",
+                projectType,
                 abortController.signal,
               );
               if (intent.confirmed && intent.brief) {
                 res.write(`data: ${JSON.stringify({ type: "generating" })}\n\n`);
-                const result = await generateGestionale(
-                  projectId,
-                  req.user!.orgId,
-                  intent.brief,
-                  { signal: abortController.signal },
-                );
-                res.write(
-                  `data: ${JSON.stringify({
-                    type: "gestionale_ready",
-                    projectId,
-                    schemaId: result.schemaId,
-                    version: result.version,
-                    def: result.def,
-                  })}\n\n`,
-                );
+                if (projectType === "gestionale") {
+                  const result = await generateGestionale(projectId, req.user!.orgId, intent.brief, {
+                    signal: abortController.signal,
+                  });
+                  res.write(
+                    `data: ${JSON.stringify({
+                      type: "gestionale_ready",
+                      projectId,
+                      schemaId: result.schemaId,
+                      version: result.version,
+                      def: result.def,
+                    })}\n\n`,
+                  );
+                } else {
+                  const result = await generateWorkflow(projectId, req.user!.orgId, intent.brief, {
+                    signal: abortController.signal,
+                  });
+                  res.write(
+                    `data: ${JSON.stringify({
+                      type: "workflow_ready",
+                      projectId,
+                      workflowId: result.workflowId,
+                      def: result.def,
+                    })}\n\n`,
+                  );
+                }
               }
             } catch (genErr) {
-              logger.error({ err: genErr, projectId }, "Gestionale handoff failed");
+              logger.error({ err: genErr, projectId, projectType }, "Architect handoff failed");
               res.write(
                 `data: ${JSON.stringify({
                   type: "generation_error",

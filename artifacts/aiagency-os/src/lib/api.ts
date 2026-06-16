@@ -44,6 +44,10 @@ export function deployGestionale(schemaId: string): Promise<{ schemaName: string
   return authedFetch(`/gestionali/${schemaId}/deploy`, { method: "POST" });
 }
 
+export function activateWorkflow(workflowId: string): Promise<{ workflowId: string; isActive: boolean }> {
+  return authedFetch(`/workflows/${workflowId}/activate`, { method: "POST" });
+}
+
 export async function sendCommandToGiassAi(
   message: string,
 ): Promise<{ conversationId?: string }> {

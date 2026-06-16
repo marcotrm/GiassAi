@@ -33,10 +33,25 @@ export interface GestionaleDef {
   enums: { name: string; values: { value: string; label: string }[] }[];
 }
 
+// Minimal mirror of the backend WorkflowDef for preview.
+export interface WorkflowNodeView {
+  id: string;
+  type: "trigger" | "action" | "ai_task" | "human_in_the_loop";
+  label: string;
+  position: number;
+  nextNodeId: string | null;
+}
+export interface WorkflowDefView {
+  name: string;
+  description?: string;
+  nodes: WorkflowNodeView[];
+}
+
 export type GenerationState =
   | { status: "idle" }
   | { status: "generating" }
-  | { status: "ready"; schemaId: string; projectId: string; def: GestionaleDef }
+  | { status: "ready"; kind: "gestionale"; schemaId: string; projectId: string; def: GestionaleDef }
+  | { status: "ready"; kind: "workflow"; workflowId: string; projectId: string; def: WorkflowDefView }
   | { status: "error"; message: string };
 
 interface UseChatStreamOptions {
@@ -59,16 +74,19 @@ interface UseChatStreamReturn {
 }
 
 interface SSEEvent {
-  type: "token" | "done" | "error" | "generating" | "gestionale_ready" | "generation_error";
+  type:
+    | "token" | "done" | "error" | "generating"
+    | "gestionale_ready" | "workflow_ready" | "generation_error";
   content?: string;
   conversationId?: string;
   messageId?: string;
   message?: string;
-  // gestionale_ready payload
+  // generation payloads
   projectId?: string;
   schemaId?: string;
+  workflowId?: string;
   version?: number;
-  def?: GestionaleDef;
+  def?: unknown;
 }
 
 export function useChatStream(options?: UseChatStreamOptions): UseChatStreamReturn {
@@ -182,9 +200,20 @@ export function useChatStream(options?: UseChatStreamOptions): UseChatStreamRetu
               if (event.schemaId && event.projectId && event.def) {
                 setGeneration({
                   status: "ready",
+                  kind: "gestionale",
                   schemaId: event.schemaId,
                   projectId: event.projectId,
-                  def: event.def,
+                  def: event.def as GestionaleDef,
+                });
+              }
+            } else if (event.type === "workflow_ready") {
+              if (event.workflowId && event.projectId && event.def) {
+                setGeneration({
+                  status: "ready",
+                  kind: "workflow",
+                  workflowId: event.workflowId,
+                  projectId: event.projectId,
+                  def: event.def as WorkflowDefView,
                 });
               }
             } else if (event.type === "generation_error") {
