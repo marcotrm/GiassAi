@@ -7,6 +7,7 @@ import { routeToAgent, classifyCreationIntent } from "../services/ai/agent-route
 import { runPmAgent } from "../services/ai/pm-agent.js";
 import { generateGestionale } from "../services/ai/gestionale/orchestrator.js";
 import { generateWorkflow } from "../services/ai/workflow/orchestrator.js";
+import { generateLanding } from "../services/ai/landing/orchestrator.js";
 import { MODELS } from "../services/ai/models.js";
 import type { ChatMessage as AiChatMessage } from "../services/ai/model-adapter.js";
 import { logger } from "../lib/logger.js";
@@ -118,7 +119,7 @@ router.post("/chat", requireAuth, async (req: Request, res: Response) => {
 
           // Architect handoff: only inside a CreationRoom, once the user
           // confirms. Generation streams on the same connection.
-          if (projectId && (projectType === "gestionale" || projectType === "workflow")) {
+          if (projectId && (projectType === "gestionale" || projectType === "workflow" || projectType === "landing")) {
             try {
               const intent = await classifyCreationIntent(
                 conversationHistory,
@@ -128,10 +129,9 @@ router.post("/chat", requireAuth, async (req: Request, res: Response) => {
               );
               if (intent.confirmed && intent.brief) {
                 res.write(`data: ${JSON.stringify({ type: "generating" })}\n\n`);
+                const sig = { signal: abortController.signal };
                 if (projectType === "gestionale") {
-                  const result = await generateGestionale(projectId, req.user!.orgId, intent.brief, {
-                    signal: abortController.signal,
-                  });
+                  const result = await generateGestionale(projectId, req.user!.orgId, intent.brief, sig);
                   res.write(
                     `data: ${JSON.stringify({
                       type: "gestionale_ready",
@@ -141,16 +141,25 @@ router.post("/chat", requireAuth, async (req: Request, res: Response) => {
                       def: result.def,
                     })}\n\n`,
                   );
-                } else {
-                  const result = await generateWorkflow(projectId, req.user!.orgId, intent.brief, {
-                    signal: abortController.signal,
-                  });
+                } else if (projectType === "workflow") {
+                  const result = await generateWorkflow(projectId, req.user!.orgId, intent.brief, sig);
                   res.write(
                     `data: ${JSON.stringify({
                       type: "workflow_ready",
                       projectId,
                       workflowId: result.workflowId,
                       def: result.def,
+                    })}\n\n`,
+                  );
+                } else {
+                  const result = await generateLanding(projectId, req.user!.orgId, intent.brief, sig);
+                  res.write(
+                    `data: ${JSON.stringify({
+                      type: "landing_ready",
+                      projectId,
+                      landingId: result.landingId,
+                      html: result.html,
+                      ideasCount: result.ideasCount,
                     })}\n\n`,
                   );
                 }

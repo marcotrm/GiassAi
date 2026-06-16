@@ -52,6 +52,7 @@ export type GenerationState =
   | { status: "generating" }
   | { status: "ready"; kind: "gestionale"; schemaId: string; projectId: string; def: GestionaleDef }
   | { status: "ready"; kind: "workflow"; workflowId: string; projectId: string; def: WorkflowDefView }
+  | { status: "ready"; kind: "landing"; landingId: string; projectId: string; html: string; ideasCount: number }
   | { status: "error"; message: string };
 
 interface UseChatStreamOptions {
@@ -76,7 +77,7 @@ interface UseChatStreamReturn {
 interface SSEEvent {
   type:
     | "token" | "done" | "error" | "generating"
-    | "gestionale_ready" | "workflow_ready" | "generation_error";
+    | "gestionale_ready" | "workflow_ready" | "landing_ready" | "generation_error";
   content?: string;
   conversationId?: string;
   messageId?: string;
@@ -85,6 +86,9 @@ interface SSEEvent {
   projectId?: string;
   schemaId?: string;
   workflowId?: string;
+  landingId?: string;
+  html?: string;
+  ideasCount?: number;
   version?: number;
   def?: unknown;
 }
@@ -214,6 +218,17 @@ export function useChatStream(options?: UseChatStreamOptions): UseChatStreamRetu
                   workflowId: event.workflowId,
                   projectId: event.projectId,
                   def: event.def as WorkflowDefView,
+                });
+              }
+            } else if (event.type === "landing_ready") {
+              if (event.landingId && event.projectId && typeof event.html === "string") {
+                setGeneration({
+                  status: "ready",
+                  kind: "landing",
+                  landingId: event.landingId,
+                  projectId: event.projectId,
+                  html: event.html,
+                  ideasCount: event.ideasCount ?? 0,
                 });
               }
             } else if (event.type === "generation_error") {

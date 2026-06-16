@@ -5,6 +5,7 @@ import chatRouter from "./chat.js";
 import projectsRouter from "./projects.js";
 import gestionaliRouter from "./gestionali.js";
 import workflowsRouter from "./workflows.js";
+import landingRouter from "./landing.js";
 
 const router: IRouter = Router();
 
@@ -14,5 +15,6 @@ router.use(chatRouter);
 router.use(projectsRouter);
 router.use(gestionaliRouter);
 router.use(workflowsRouter);
+router.use(landingRouter);
 
 export default router;

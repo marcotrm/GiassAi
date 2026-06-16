@@ -48,6 +48,10 @@ export function activateWorkflow(workflowId: string): Promise<{ workflowId: stri
   return authedFetch(`/workflows/${workflowId}/activate`, { method: "POST" });
 }
 
+export function publishLanding(landingId: string): Promise<{ publishedUrl: string }> {
+  return authedFetch(`/landing/${landingId}/publish`, { method: "POST" });
+}
+
 export async function sendCommandToGiassAi(
   message: string,
 ): Promise<{ conversationId?: string }> {
