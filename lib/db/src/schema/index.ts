@@ -6,6 +6,7 @@ import {
   jsonb,
   integer,
   boolean,
+  unique,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
@@ -29,6 +30,32 @@ export const organizationsRelations = relations(organizations, ({ many }) => ({
 export const insertOrganizationSchema = createInsertSchema(organizations).omit({ id: true });
 export type InsertOrganization = typeof organizations.$inferInsert;
 export type Organization = typeof organizations.$inferSelect;
+
+// ============================================================================
+// ORG MEMBERS — membership used by RLS policies on generated gestionale tables
+// ============================================================================
+
+export const orgMembers = pgTable(
+  "org_members",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    userId: text("user_id").notNull(),
+    role: text("role").notNull().default("member"), // 'owner' | 'admin' | 'member'
+    joinedAt: timestamp("joined_at", { mode: "string" }).defaultNow().notNull(),
+  },
+  (t) => ({
+    orgUserUnique: unique("org_members_org_user_unique").on(t.orgId, t.userId),
+  }),
+);
+
+export const orgMembersRelations = relations(orgMembers, ({ one }) => ({
+  organization: one(organizations, { fields: [orgMembers.orgId], references: [organizations.id] }),
+}));
+
+export const insertOrgMemberSchema = createInsertSchema(orgMembers).omit({ id: true });
+export type InsertOrgMember = typeof orgMembers.$inferInsert;
+export type OrgMember = typeof orgMembers.$inferSelect;
 
 // ============================================================================
 // PROJECTS

@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import { supabaseAdmin } from "../lib/supabase.js";
 import { db } from "@workspace/db";
-import { organizations } from "@workspace/db/schema";
+import { organizations, orgMembers } from "@workspace/db/schema";
 import { eq } from "drizzle-orm";
 import { logger } from "../lib/logger.js";
 
@@ -52,6 +52,13 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
         })
         .returning();
     }
+
+    // Ensure an org_members row exists — generated gestionale RLS policies
+    // depend on it. Idempotent via the (org_id, user_id) unique constraint.
+    await db
+      .insert(orgMembers)
+      .values({ orgId: org!.id, userId: user.id, role: "owner" })
+      .onConflictDoNothing();
 
     req.user = {
       id: user.id,
