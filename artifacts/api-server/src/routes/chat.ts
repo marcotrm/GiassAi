@@ -14,7 +14,7 @@ import { logger } from "../lib/logger.js";
 import { requireAuth } from "../middlewares/auth.js";
 
 const SendMessageBody = z.object({
-  conversationId: z.string().uuid().optional(),
+  conversationId: z.string().uuid().nullish(), // frontend sends null on the first message
   message: z.string().trim().min(1),
   // Set when the chat happens inside a CreationRoom — enables the Architect handoff.
   projectId: z.string().uuid().optional(),
