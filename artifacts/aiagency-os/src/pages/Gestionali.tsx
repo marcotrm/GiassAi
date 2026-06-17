@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Database, Clock, Users, ArrowRight, PlusCircle, Loader2 } from "lucide-react";
+import { Database, Clock, Users, ArrowRight, PlusCircle, Loader2, Trash2 } from "lucide-react";
 import { CreationType } from "../App";
 import { supabase } from "../lib/supabase";
-import { API_BASE } from "../lib/api";
+import { API_BASE, deleteProject } from "../lib/api";
+import GestionaleDataView from "../components/GestionaleDataView";
 
 interface GestionaliProps {
   onOpenCreation: (type: CreationType) => void;
@@ -21,6 +22,8 @@ interface Project {
 export default function Gestionali({ onOpenCreation }: GestionaliProps) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState<Project | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchProjects() {
@@ -32,7 +35,7 @@ export default function Gestionali({ onOpenCreation }: GestionaliProps) {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         const all = data.projects ?? data ?? [];
-        setProjects(all.filter((p: Project) => p.type === "gestionale"));
+        setProjects(all.filter((p: Project) => p.type === "gestionale" && p.status !== "archived"));
       } catch (err) {
         console.error("Fetch gestionali error:", err);
       } finally {
@@ -41,6 +44,25 @@ export default function Gestionali({ onOpenCreation }: GestionaliProps) {
     }
     fetchProjects();
   }, []);
+
+  async function handleDelete(e: React.MouseEvent, project: Project) {
+    e.stopPropagation();
+    if (!window.confirm(`Eliminare "${project.name}"? L'azione archivia il progetto.`)) return;
+    setDeletingId(project.id);
+    try {
+      await deleteProject(project.id);
+      setProjects((prev) => prev.filter((p) => p.id !== project.id));
+    } catch (err) {
+      console.error("Delete error:", err);
+      window.alert("Eliminazione fallita.");
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
+  if (selected) {
+    return <GestionaleDataView projectId={selected.id} projectName={selected.name} onBack={() => setSelected(null)} />;
+  }
 
   if (loading) {
     return (
@@ -71,12 +93,21 @@ export default function Gestionali({ onOpenCreation }: GestionaliProps) {
   }
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
       className="p-8 space-y-6"
     >
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-foreground">I tuoi gestionali</h2>
+        <button
+          onClick={() => onOpenCreation('gestionale')}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:opacity-90"
+        >
+          <PlusCircle className="w-4 h-4" /> Nuovo
+        </button>
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {projects.map((project, i) => (
           <motion.div
@@ -84,13 +115,23 @@ export default function Gestionali({ onOpenCreation }: GestionaliProps) {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: i * 0.1 }}
             key={project.id}
-            className="glass-panel p-6 rounded-2xl cursor-pointer hover:border-primary/50 transition-all duration-300 group bg-card border-border flex flex-col"
+            onClick={() => setSelected(project)}
+            className="glass-panel p-6 rounded-2xl cursor-pointer hover:border-primary/50 transition-all duration-300 group bg-card border-border flex flex-col relative"
           >
+            <button
+              onClick={(e) => handleDelete(e, project)}
+              disabled={deletingId === project.id}
+              title="Elimina"
+              className="absolute top-4 right-4 w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
+            >
+              {deletingId === project.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+            </button>
+
             <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 border border-primary/20">
               <Database className="w-6 h-6 text-primary" />
             </div>
-            <h3 className="font-bold text-foreground text-xl mb-4">{project.name}</h3>
-            
+            <h3 className="font-bold text-foreground text-xl mb-4 pr-8">{project.name}</h3>
+
             <div className="mt-auto space-y-3">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground flex items-center gap-2"><Clock className="w-4 h-4"/> Stato</span>

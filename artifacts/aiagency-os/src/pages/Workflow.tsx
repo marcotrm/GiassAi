@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Network, Activity, Play, ArrowRight, PlusCircle, Loader2 } from "lucide-react";
+import { Network, Activity, Play, ArrowRight, PlusCircle, Loader2, Trash2 } from "lucide-react";
 import { CreationType } from "../App";
 import { supabase } from "../lib/supabase";
-import { API_BASE } from "../lib/api";
+import { API_BASE, deleteProject } from "../lib/api";
 
 interface WorkflowProps {
   onOpenCreation: (type: CreationType) => void;
@@ -20,6 +20,21 @@ interface Project {
 export default function Workflow({ onOpenCreation }: WorkflowProps) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  async function handleDelete(e: React.MouseEvent, project: Project) {
+    e.stopPropagation();
+    if (!window.confirm(`Eliminare "${project.name}"?`)) return;
+    setDeletingId(project.id);
+    try {
+      await deleteProject(project.id);
+      setProjects((prev) => prev.filter((p) => p.id !== project.id));
+    } catch {
+      window.alert("Eliminazione fallita.");
+    } finally {
+      setDeletingId(null);
+    }
+  }
 
   useEffect(() => {
     async function fetchProjects() {
@@ -31,7 +46,7 @@ export default function Workflow({ onOpenCreation }: WorkflowProps) {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         const all = data.projects ?? data ?? [];
-        setProjects(all.filter((p: Project) => p.type === "workflow"));
+        setProjects(all.filter((p: Project) => p.type === "workflow" && p.status !== "archived"));
       } catch (err) {
         console.error("Fetch workflow error:", err);
       } finally {
@@ -89,12 +104,22 @@ export default function Workflow({ onOpenCreation }: WorkflowProps) {
               <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
                 <Network className="w-6 h-6 text-primary" />
               </div>
-              <div className={`px-2.5 py-1 rounded-full text-xs font-medium border ${
-                project.status === 'active'
-                  ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' 
-                  : 'bg-muted text-muted-foreground border-border'
-              }`}>
-                {project.status === 'active' ? 'Attivo' : 'In Pausa'}
+              <div className="flex items-center gap-2">
+                <div className={`px-2.5 py-1 rounded-full text-xs font-medium border ${
+                  project.status === 'active'
+                    ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
+                    : 'bg-muted text-muted-foreground border-border'
+                }`}>
+                  {project.status === 'active' ? 'Attivo' : 'In Pausa'}
+                </div>
+                <button
+                  onClick={(e) => handleDelete(e, project)}
+                  disabled={deletingId === project.id}
+                  title="Elimina"
+                  className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
+                >
+                  {deletingId === project.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                </button>
               </div>
             </div>
             

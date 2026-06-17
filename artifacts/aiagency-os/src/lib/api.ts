@@ -52,6 +52,54 @@ export function publishLanding(landingId: string): Promise<{ publishedUrl: strin
   return authedFetch(`/landing/${landingId}/publish`, { method: "POST" });
 }
 
+export function deleteProject(id: string): Promise<unknown> {
+  return authedFetch(`/projects/${id}`, { method: "DELETE" });
+}
+
+export interface GestionaleColumnDef {
+  name: string;
+  label: string;
+  type: string;
+  nullable?: boolean;
+  enumName?: string;
+  relationTo?: string;
+}
+export interface GestionaleTableDef {
+  name: string;
+  label: string;
+  primaryDisplayColumn: string;
+  columns: GestionaleColumnDef[];
+}
+export interface GestionaleSchemaResponse {
+  schemaId: string;
+  version: number;
+  isDeployed: boolean;
+  def: {
+    name: string;
+    tables: GestionaleTableDef[];
+    enums: { name: string; values: { value: string; label: string }[] }[];
+  };
+}
+
+export function getGestionaleSchema(projectId: string): Promise<GestionaleSchemaResponse> {
+  return authedFetch(`/gestionali/${projectId}/schema`);
+}
+
+export function getGestionaleData(projectId: string, table: string): Promise<Record<string, unknown>[]> {
+  return authedFetch(`/gestionali/${projectId}/data?table=${encodeURIComponent(table)}`);
+}
+
+export function insertGestionaleRow(
+  projectId: string,
+  table: string,
+  values: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
+  return authedFetch(`/gestionali/${projectId}/data`, {
+    method: "POST",
+    body: JSON.stringify({ table, values }),
+  });
+}
+
 export async function sendCommandToGiassAi(
   message: string,
 ): Promise<{ conversationId?: string }> {
