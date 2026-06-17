@@ -1,5 +1,6 @@
 import { streamChat, type ChatMessage, type StreamCallbacks } from "./model-adapter.js";
 import { isDemoMode, demoPmReply } from "./demo/index.js";
+import { MODELS } from "./models.js";
 import { logger } from "../../lib/logger.js";
 
 const PM_SYSTEM_PROMPT = `Sei il PM Agent di GiassAi — l'interfaccia amichevole e professionale che parla direttamente con l'utente.
@@ -25,7 +26,7 @@ Tipi di progetto che puoi aiutare a creare:
 3. **Workflow** — Automazione con trigger, azioni, task AI e approvazioni umane
 4. **Piano Editoriale Video** — Calendario di idee video per social con script e hashtag`;
 
-const PRIMARY_MODEL = "claude-haiku-4-5-20250609";
+const PRIMARY_MODEL = MODELS.pm;
 const FALLBACK_MODEL = "gpt-4.1-mini";
 
 export interface PmAgentInput {
