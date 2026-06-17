@@ -100,6 +100,36 @@ export function insertGestionaleRow(
   });
 }
 
+export function deleteGestionaleRow(projectId: string, table: string, id: string): Promise<unknown> {
+  return authedFetch(`/gestionali/${projectId}/data`, {
+    method: "DELETE",
+    body: JSON.stringify({ table, id }),
+  });
+}
+
+export interface ConversationSummary {
+  id: string;
+  projectId: string | null;
+  title: string | null;
+  status: string;
+  createdAt: string;
+}
+
+export function getConversations(): Promise<ConversationSummary[]> {
+  return authedFetch(`/chat/conversations`);
+}
+
+export interface StoredMessage {
+  id: string;
+  role: "user" | "assistant" | "system";
+  content: string;
+  createdAt: string;
+}
+
+export function getConversationMessages(conversationId: string): Promise<StoredMessage[]> {
+  return authedFetch(`/chat/conversations/${conversationId}/messages`);
+}
+
 export async function sendCommandToGiassAi(
   message: string,
 ): Promise<{ conversationId?: string }> {

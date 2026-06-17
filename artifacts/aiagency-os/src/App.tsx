@@ -19,13 +19,19 @@ import { Loader2 } from "lucide-react";
 export type SidebarSection = "control" | "gestionali" | "funnel" | "workflow" | "impostazioni";
 export type CreationType = "gestionale" | "landing" | "workflow" | "video_ideas";
 
+export interface CreationContext {
+  projectId?: string;
+}
+
 function Dashboard() {
   const [currentSection, setCurrentSection] = useState<SidebarSection>("control");
   const [inCreation, setInCreation] = useState(false);
   const [creationType, setCreationType] = useState<CreationType>("gestionale");
+  const [creationContext, setCreationContext] = useState<CreationContext | null>(null);
 
-  const openCreationRoom = (type: CreationType) => {
+  const openCreationRoom = (type: CreationType, ctx?: CreationContext) => {
     setCreationType(type);
+    setCreationContext(ctx ?? null);
     setInCreation(true);
   };
 
@@ -60,6 +66,7 @@ function Dashboard() {
         <CreationRoom
           key="creation"
           type={creationType}
+          existingProjectId={creationContext?.projectId}
           onNavigate={() => setInCreation(false)}
         />
       )}

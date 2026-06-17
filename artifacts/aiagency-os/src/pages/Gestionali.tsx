@@ -7,7 +7,7 @@ import { API_BASE, deleteProject } from "../lib/api";
 import GestionaleDataView from "../components/GestionaleDataView";
 
 interface GestionaliProps {
-  onOpenCreation: (type: CreationType) => void;
+  onOpenCreation: (type: CreationType, ctx?: { projectId?: string }) => void;
 }
 
 interface Project {
@@ -61,7 +61,18 @@ export default function Gestionali({ onOpenCreation }: GestionaliProps) {
   }
 
   if (selected) {
-    return <GestionaleDataView projectId={selected.id} projectName={selected.name} onBack={() => setSelected(null)} />;
+    return (
+      <GestionaleDataView
+        projectId={selected.id}
+        projectName={selected.name}
+        onBack={() => setSelected(null)}
+        onResumeChat={() => onOpenCreation('gestionale', { projectId: selected.id })}
+        onDeleted={() => {
+          setProjects((prev) => prev.filter((p) => p.id !== selected.id));
+          setSelected(null);
+        }}
+      />
+    );
   }
 
   if (loading) {

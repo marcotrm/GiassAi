@@ -6,7 +6,7 @@ import { supabase } from "../lib/supabase";
 import { API_BASE, deleteProject } from "../lib/api";
 
 interface WorkflowProps {
-  onOpenCreation: (type: CreationType) => void;
+  onOpenCreation: (type: CreationType, ctx?: { projectId?: string }) => void;
 }
 
 interface Project {
@@ -98,6 +98,7 @@ export default function Workflow({ onOpenCreation }: WorkflowProps) {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: i * 0.1 }}
             key={project.id}
+            onClick={() => onOpenCreation('workflow', { projectId: project.id })}
             className="glass-panel p-6 rounded-2xl cursor-pointer hover:border-primary/50 transition-all duration-300 group bg-card border-border flex flex-col"
           >
             <div className="flex justify-between items-start mb-4">

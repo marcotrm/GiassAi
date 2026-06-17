@@ -72,6 +72,7 @@ interface UseChatStreamReturn {
   generation: GenerationState;
   sendMessage: (text: string, extra?: SendExtra) => void;
   clearMessages: () => void;
+  seed: (conversationId: string, msgs: ChatMessage[]) => void;
 }
 
 interface SSEEvent {
@@ -266,5 +267,10 @@ export function useChatStream(options?: UseChatStreamOptions): UseChatStreamRetu
     setGeneration({ status: "idle" });
   }, []);
 
-  return { messages, conversationId, isStreaming, error, generation, sendMessage, clearMessages };
+  const seed = useCallback((convId: string, msgs: ChatMessage[]) => {
+    setConversationId(convId);
+    setMessages(msgs);
+  }, []);
+
+  return { messages, conversationId, isStreaming, error, generation, sendMessage, clearMessages, seed };
 }

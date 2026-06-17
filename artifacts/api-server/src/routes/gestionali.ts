@@ -191,4 +191,42 @@ router.post("/gestionali/:projectId/data", requireAuth, async (req: Request, res
   }
 });
 
+// DELETE /gestionali/:projectId/data — delete one row by id.
+router.delete("/gestionali/:projectId/data", requireAuth, async (req: Request, res: Response) => {
+  const projectId = String(req.params["projectId"]);
+  const body = z.object({ table: z.string(), id: z.string().uuid() }).safeParse(req.body);
+  if (!body.success) {
+    res.status(400).json({ error: "Invalid request", details: body.error.flatten() });
+    return;
+  }
+
+  const project = await loadProject(projectId, req.user!.orgId);
+  if (!project) {
+    res.status(404).json({ error: "Project not found" });
+    return;
+  }
+  const loaded = await loadLatestDef(projectId);
+  if (!loaded || !loaded.row.isDeployed) {
+    res.status(409).json({ error: "Gestionale not deployed" });
+    return;
+  }
+  const table = loaded.def.tables.find((t) => t.name === body.data.table);
+  if (!table) {
+    res.status(400).json({ error: `Unknown table "${body.data.table}"` });
+    return;
+  }
+
+  const schema = orgSchemaName(req.user!.orgId);
+  try {
+    await pool.query(
+      `DELETE FROM "${schema}"."${table.name}" WHERE "id" = $1 AND "org_id" = $2`,
+      [body.data.id, req.user!.orgId],
+    );
+    res.json({ ok: true });
+  } catch (err) {
+    logger.error({ err, projectId, table: table.name }, "Row delete failed");
+    res.status(500).json({ error: "Delete failed", message: err instanceof Error ? err.message : String(err) });
+  }
+});
+
 export default router;

@@ -2,14 +2,15 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, Bot, Play, Loader2, Code, Database, MousePointerClick, Network, AlertCircle, Sparkles } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { CreationType } from "../App";
-import { useChatStream } from "../hooks/use-chat-stream";
-import { createProject } from "../lib/api";
+import { useChatStream, type ChatMessage } from "../hooks/use-chat-stream";
+import { createProject, getConversations, getConversationMessages } from "../lib/api";
 import GestionaleSchemaPreview from "../components/GestionaleSchemaPreview";
 import WorkflowPreview from "../components/WorkflowPreview";
 import LandingPreview from "../components/LandingPreview";
 
 interface CreationRoomProps {
   type: CreationType;
+  existingProjectId?: string;
   onNavigate: () => void;
 }
 
@@ -26,13 +27,15 @@ const TYPE_ICON: Record<string, typeof Database> = {
   workflow: Network,
 };
 
-export default function CreationRoom({ type, onNavigate }: CreationRoomProps) {
+export default function CreationRoom({ type, existingProjectId, onNavigate }: CreationRoomProps) {
   const chat = useChatStream();
+  const { seed } = chat;
+  const [resuming, setResuming] = useState(!!existingProjectId);
 
-  // Initial welcome message (not mock — just a static greeting)
-  const welcomeMessages = [
-    { id: "welcome-1", role: "assistant" as const, content: `Ciao! Sono il tuo AI Master. Dimmi cosa vorresti creare per il tuo ${TYPE_LABEL[type]}.` },
-  ];
+  // Welcome only for a fresh creation (not when resuming an existing project).
+  const welcomeMessages = existingProjectId
+    ? []
+    : [{ id: "welcome-1", role: "assistant" as const, content: `Ciao! Sono il tuo AI Master. Dimmi cosa vorresti creare per il tuo ${TYPE_LABEL[type]}.` }];
 
   const allMessages = [
     ...welcomeMessages.map(m => ({ id: m.id, role: m.role, content: m.content })),
@@ -40,9 +43,33 @@ export default function CreationRoom({ type, onNavigate }: CreationRoomProps) {
   ];
 
   const [inputText, setInputText] = useState("");
-  const projectIdRef = useRef<string | null>(null);
+  const projectIdRef = useRef<string | null>(existingProjectId ?? null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Resume an existing project's conversation.
+  useEffect(() => {
+    if (!existingProjectId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const convs = await getConversations();
+        const conv = convs.find((c) => c.projectId === existingProjectId);
+        if (conv && !cancelled) {
+          const msgs = await getConversationMessages(conv.id);
+          const mapped: ChatMessage[] = msgs
+            .filter((m) => m.role === "user" || m.role === "assistant")
+            .map((m) => ({ id: m.id, role: m.role as "user" | "assistant", content: m.content, createdAt: m.createdAt }));
+          if (!cancelled) seed(conv.id, mapped);
+        }
+      } catch {
+        /* ignore — start with an empty chat */
+      } finally {
+        if (!cancelled) setResuming(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [existingProjectId, seed]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -184,7 +211,7 @@ export default function CreationRoom({ type, onNavigate }: CreationRoomProps) {
                 onChange={e => setInputText(e.target.value)}
                 placeholder="Descrivi cosa vuoi creare..."
                 className="flex-1 bg-transparent border-none outline-none text-foreground px-4 py-4 placeholder:text-muted-foreground"
-                disabled={chat.isStreaming}
+                disabled={chat.isStreaming || resuming}
                 data-testid="chat-input"
               />
               <button 
