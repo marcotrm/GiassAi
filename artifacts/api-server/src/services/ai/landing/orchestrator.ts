@@ -7,6 +7,7 @@ import { runLandingArchitect } from "./architect-agent.js";
 import { fillSectionContent } from "./copywriter.js";
 import { generateSocialIdeas } from "./social-ideas.js";
 import { renderLandingHtml } from "../../landing/html-renderer.js";
+import { isDemoMode, pickDemoLanding } from "../demo/index.js";
 import { MODELS, computeCostUsd } from "../models.js";
 import { logger } from "../../../lib/logger.js";
 
@@ -32,6 +33,8 @@ export async function generateLanding(
   brief: string,
   opts: { signal?: AbortSignal } = {},
 ): Promise<GenerateLandingResult> {
+  if (isDemoMode()) return demoGenerateLanding(projectId, brief);
+
   const { profile, usage: analystUsage } = await analyzeBusiness(brief, opts.signal);
   const { def, usage: archUsage } = await runLandingArchitect(profile, opts.signal);
 
@@ -87,6 +90,37 @@ export async function generateLanding(
   await logUsage(orgId, archUsage, copyUsages, [analystUsage, ideasUsage]);
 
   logger.info({ projectId, landingId: lc!.id, sections: def.sections.length, ideas: ideas.length }, "Landing generated");
+  return { landingId: lc!.id, def, html, ideasCount: ideas.length };
+}
+
+/** Demo generation: pick a sector-matched sample landing, render HTML (no AI). */
+async function demoGenerateLanding(projectId: string, brief: string): Promise<GenerateLandingResult> {
+  const { def, ideas } = pickDemoLanding(brief);
+  const html = renderLandingHtml(def);
+
+  const [lc] = await db
+    .insert(landingConfigs)
+    .values({ projectId, template: def.template, sections: { def, html }, forms: def.forms })
+    .returning();
+
+  if (ideas.length > 0) {
+    await db.insert(videoIdeas).values(
+      ideas.map((i) => ({
+        projectId,
+        title: i.title,
+        hook: i.hook,
+        script: i.script,
+        cta: i.cta ?? null,
+        hashtags: i.hashtags,
+        caption: i.caption ?? null,
+        platform: i.platform,
+        format: i.format ?? null,
+        category: i.category,
+      })),
+    );
+  }
+
+  logger.info({ projectId, landingId: lc!.id, demo: true }, "Landing generated (demo)");
   return { landingId: lc!.id, def, html, ideasCount: ideas.length };
 }
 

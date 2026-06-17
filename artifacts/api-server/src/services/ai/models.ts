@@ -14,12 +14,11 @@ export const MODELS = {
 
 export type ModelRole = keyof typeof MODELS;
 
-// Approximate USD pricing per 1M tokens (input / output).
-// TODO: verify against the current Anthropic price list before billing users.
+// USD pricing per 1M tokens (input / output). Current Anthropic list prices.
 const PRICING: Record<string, { in: number; out: number }> = {
-  "claude-opus-4-8": { in: 15, out: 75 },
+  "claude-opus-4-8": { in: 5, out: 25 },
   "claude-sonnet-4-6": { in: 3, out: 15 },
-  "claude-haiku-4-5-20251001": { in: 0.8, out: 4 },
+  "claude-haiku-4-5-20251001": { in: 1, out: 5 },
 };
 
 /** Estimated cost in USD for a single model call. Returns a string for NUMERIC storage. */

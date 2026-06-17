@@ -1,4 +1,5 @@
 import { streamChat, type ChatMessage, type StreamCallbacks } from "./model-adapter.js";
+import { isDemoMode, demoPmReply } from "./demo/index.js";
 import { logger } from "../../lib/logger.js";
 
 const PM_SYSTEM_PROMPT = `Sei il PM Agent di GiassAi — l'interfaccia amichevole e professionale che parla direttamente con l'utente.
@@ -30,12 +31,28 @@ const FALLBACK_MODEL = "gpt-4.1-mini";
 export interface PmAgentInput {
   conversationHistory: ChatMessage[];
   userMessage: string;
+  projectType?: string;
 }
 
 export async function runPmAgent(
   input: PmAgentInput,
   callbacks: StreamCallbacks & { signal?: AbortSignal },
 ): Promise<void> {
+  // Offline demo mode: stream a scripted, sector-agnostic reply (no API key needed).
+  if (isDemoMode()) {
+    const reply = demoPmReply(
+      input.userMessage,
+      input.conversationHistory.length === 0,
+      input.projectType,
+    );
+    for (const word of reply.split(/(\s+)/)) {
+      if (callbacks.signal?.aborted) return;
+      callbacks.onToken(word);
+    }
+    callbacks.onDone(reply, { tokensIn: 0, tokensOut: 0 });
+    return;
+  }
+
   const messages: ChatMessage[] = [
     { role: "system", content: PM_SYSTEM_PROMPT },
     ...input.conversationHistory,

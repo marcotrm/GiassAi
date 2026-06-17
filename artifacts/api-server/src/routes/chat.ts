@@ -87,7 +87,7 @@ router.post("/chat", requireAuth, async (req: Request, res: Response) => {
     let fullResponse = "";
 
     await runPmAgent(
-      { conversationHistory, userMessage: message },
+      { conversationHistory, userMessage: message, ...(projectType ? { projectType } : {}) },
       {
         signal: abortController.signal,
         onToken(token) {

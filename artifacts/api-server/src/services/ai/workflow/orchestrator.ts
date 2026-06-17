@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import type { WorkflowDef } from "@workspace/api-zod";
 import { getOrgCatalog } from "../../ecosystem/org-catalog.js";
 import { runWorkflowArchitect } from "./architect-agent.js";
+import { isDemoMode, pickDemoWorkflow } from "../demo/index.js";
 import { MODELS, computeCostUsd } from "../models.js";
 import { logger } from "../../../lib/logger.js";
 
@@ -22,6 +23,8 @@ export async function generateWorkflow(
   brief: string,
   opts: { signal?: AbortSignal } = {},
 ): Promise<GenerateWorkflowResult> {
+  if (isDemoMode()) return demoGenerateWorkflow(projectId, brief);
+
   const catalog = await getOrgCatalog(orgId);
   const { def, usage } = await runWorkflowArchitect(brief, catalog, opts.signal);
 
@@ -65,6 +68,17 @@ export async function generateWorkflow(
   }
 
   logger.info({ projectId, workflowId: wf!.id, nodes: def.nodes.length }, "Workflow generated");
+  return { workflowId: wf!.id, def };
+}
+
+/** Demo generation: pick a sector-matched sample workflow, persist it (no AI). */
+async function demoGenerateWorkflow(projectId: string, brief: string): Promise<GenerateWorkflowResult> {
+  const def = pickDemoWorkflow(brief);
+  const [wf] = await db
+    .insert(workflows)
+    .values({ projectId, name: def.name, description: def.description ?? null, nodes: def.nodes, isActive: false })
+    .returning();
+  logger.info({ projectId, workflowId: wf!.id, demo: true }, "Workflow generated (demo)");
   return { workflowId: wf!.id, def };
 }
 

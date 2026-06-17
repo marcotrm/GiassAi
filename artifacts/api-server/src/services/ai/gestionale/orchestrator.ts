@@ -4,6 +4,7 @@ import { GestionaleSchemaDef, type GestionaleSchemaDef as GestionaleSchemaDefTyp
 import { eq, desc } from "drizzle-orm";
 import { runArchitect } from "./architect-agent.js";
 import { generateViews, generateForm, generateSeed, type SubagentUsage } from "./subagents.js";
+import { isDemoMode, pickDemoGestionale } from "../demo/index.js";
 import { deployGestionale } from "../../gestionale/deploy.js";
 import { MODELS, computeCostUsd } from "../models.js";
 import { logger } from "../../../lib/logger.js";
@@ -30,6 +31,8 @@ export async function generateGestionale(
   brief: string,
   opts: GenerateOptions = {},
 ): Promise<GenerateResult> {
+  if (isDemoMode()) return demoGenerate(projectId, brief);
+
   // 1. Architect (Opus) — the one expensive, critical reasoning step.
   const { def, usage: architectUsage } = await runArchitect(brief, opts.signal);
 
@@ -83,6 +86,24 @@ export async function generateGestionale(
   await logUsage(orgId, architectUsage, subUsages);
 
   logger.info({ projectId, schemaId: row!.id, tables: def.tables.length }, "Gestionale generated");
+  return { schemaId: row!.id, version, def };
+}
+
+/** Demo generation: pick a sector-matched sample schema, persist it (no AI). */
+async function demoGenerate(projectId: string, brief: string): Promise<GenerateResult> {
+  const def = pickDemoGestionale(brief);
+  const [latest] = await db
+    .select({ version: gestionaleSchemas.version })
+    .from(gestionaleSchemas)
+    .where(eq(gestionaleSchemas.projectId, projectId))
+    .orderBy(desc(gestionaleSchemas.version))
+    .limit(1);
+  const version = (latest?.version ?? 0) + 1;
+  const [row] = await db
+    .insert(gestionaleSchemas)
+    .values({ projectId, version, schemaJson: { def } })
+    .returning();
+  logger.info({ projectId, schemaId: row!.id, demo: true }, "Gestionale generated (demo)");
   return { schemaId: row!.id, version, def };
 }
 

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { completeJson, type ChatMessage } from "./model-adapter.js";
 import { MODELS } from "./models.js";
+import { isDemoMode, demoClassifyIntent } from "./demo/index.js";
 import { logger } from "../../lib/logger.js";
 
 export type AgentRole = "pm" | "architect" | "executor";
@@ -50,6 +51,10 @@ export async function classifyCreationIntent(
   projectKind: string,
   signal?: AbortSignal,
 ): Promise<{ confirmed: boolean; brief: string }> {
+  if (isDemoMode()) {
+    const priorUser = history.filter((m) => m.role === "user").map((m) => m.content);
+    return demoClassifyIntent(userMessage, priorUser);
+  }
   try {
     const { data } = await completeJson({
       model: MODELS.executor,
