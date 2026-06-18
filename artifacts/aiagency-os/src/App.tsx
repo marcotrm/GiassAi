@@ -8,6 +8,7 @@ import Funnel from "./pages/Funnel";
 import Workflow from "./pages/Workflow";
 import Impostazioni from "./pages/Impostazioni";
 import CreationRoom from "./pages/CreationRoom";
+import OnboardingModal from "./components/OnboardingModal";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/not-found";
 import { Toaster } from "@/components/ui/toaster";
@@ -28,6 +29,7 @@ function Dashboard() {
   const [inCreation, setInCreation] = useState(false);
   const [creationType, setCreationType] = useState<CreationType>("gestionale");
   const [creationContext, setCreationContext] = useState<CreationContext | null>(null);
+  const [onboarded, setOnboarded] = useState(() => localStorage.getItem("giassai_onboarded") === "1");
 
   const openCreationRoom = (type: CreationType, ctx?: CreationContext) => {
     setCreationType(type);
@@ -36,7 +38,16 @@ function Dashboard() {
   };
 
   return (
-    <AnimatePresence mode="wait">
+    <>
+      {!onboarded && (
+        <OnboardingModal
+          onDone={() => {
+            localStorage.setItem("giassai_onboarded", "1");
+            setOnboarded(true);
+          }}
+        />
+      )}
+      <AnimatePresence mode="wait">
       {!inCreation ? (
         <DashboardShell
           key="dashboard"
@@ -70,7 +81,8 @@ function Dashboard() {
           onNavigate={() => setInCreation(false)}
         />
       )}
-    </AnimatePresence>
+      </AnimatePresence>
+    </>
   );
 }
 
