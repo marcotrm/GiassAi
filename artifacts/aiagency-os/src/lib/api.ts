@@ -64,6 +64,20 @@ export function getLanding(projectId: string): Promise<LandingResponse> {
   return authedFetch(`/landing/${projectId}`);
 }
 
+export function editLandingElement(landingId: string, elementHtml: string, instruction: string): Promise<{ html: string }> {
+  return authedFetch(`/landing/${landingId}/edit`, {
+    method: "POST",
+    body: JSON.stringify({ elementHtml, instruction }),
+  });
+}
+
+export function saveLandingHtml(landingId: string, html: string): Promise<{ ok: boolean }> {
+  return authedFetch(`/landing/${landingId}/html`, {
+    method: "PUT",
+    body: JSON.stringify({ html }),
+  });
+}
+
 export function deleteProject(id: string): Promise<unknown> {
   return authedFetch(`/projects/${id}`, { method: "DELETE" });
 }

@@ -5,6 +5,7 @@ import { landingConfigs, videoIdeas, projects } from "@workspace/db/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { requireAuth } from "../middlewares/auth.js";
 import { generateLanding, publishLanding } from "../services/ai/landing/orchestrator.js";
+import { editElementHtml } from "../services/ai/landing/editor.js";
 import { logger } from "../lib/logger.js";
 
 const router: IRouter = Router();
@@ -18,6 +19,13 @@ async function ownsProject(projectId: string, orgId: string): Promise<boolean> {
     .where(and(eq(projects.id, projectId), eq(projects.orgId, orgId)))
     .limit(1);
   return !!p;
+}
+
+async function loadLandingForOrg(landingId: string, orgId: string) {
+  const [lc] = await db.select().from(landingConfigs).where(eq(landingConfigs.id, landingId)).limit(1);
+  if (!lc) return null;
+  if (!(await ownsProject(lc.projectId, orgId))) return null;
+  return lc;
 }
 
 // POST /landing/:projectId/generate
@@ -100,6 +108,49 @@ router.get("/video-ideas/:projectId", requireAuth, async (req: Request, res: Res
     .where(eq(videoIdeas.projectId, projectId))
     .orderBy(desc(videoIdeas.createdAt));
   res.json(ideas);
+});
+
+// POST /landing/:landingId/edit — AI edit of a single HTML fragment.
+router.post("/landing/:landingId/edit", requireAuth, async (req: Request, res: Response) => {
+  const landingId = String(req.params["landingId"]);
+  const body = z.object({ elementHtml: z.string().min(1), instruction: z.string().trim().min(1) }).safeParse(req.body);
+  if (!body.success) {
+    res.status(400).json({ error: "Invalid request", details: body.error.flatten() });
+    return;
+  }
+  const lc = await loadLandingForOrg(landingId, req.user!.orgId);
+  if (!lc) {
+    res.status(404).json({ error: "Landing not found" });
+    return;
+  }
+  try {
+    const { html } = await editElementHtml(body.data.elementHtml, body.data.instruction);
+    res.json({ html });
+  } catch (err) {
+    logger.error({ err, landingId }, "Landing edit failed");
+    res.status(500).json({ error: "Edit failed", message: err instanceof Error ? err.message : String(err) });
+  }
+});
+
+// PUT /landing/:landingId/html — save the (edited) full page HTML.
+router.put("/landing/:landingId/html", requireAuth, async (req: Request, res: Response) => {
+  const landingId = String(req.params["landingId"]);
+  const body = z.object({ html: z.string().min(1) }).safeParse(req.body);
+  if (!body.success) {
+    res.status(400).json({ error: "Invalid request", details: body.error.flatten() });
+    return;
+  }
+  const lc = await loadLandingForOrg(landingId, req.user!.orgId);
+  if (!lc) {
+    res.status(404).json({ error: "Landing not found" });
+    return;
+  }
+  const stored = (lc.sections ?? {}) as Record<string, unknown>;
+  await db
+    .update(landingConfigs)
+    .set({ sections: { ...stored, html: body.data.html }, updatedAt: new Date().toISOString() })
+    .where(eq(landingConfigs.id, landingId));
+  res.json({ ok: true });
 });
 
 export default router;
