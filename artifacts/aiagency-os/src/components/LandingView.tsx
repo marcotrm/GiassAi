@@ -227,66 +227,76 @@ export default function LandingView({ projectId, projectName, onBack, onResumeCh
         </div>
       )}
 
-      <div className="flex-1 min-h-0 bg-white relative">
-        <iframe
-          ref={iframeRef}
-          title="Landing"
-          srcDoc={editMode ? injectEditor(html) : html}
-          className="w-full h-full border-0"
-          sandbox={editMode ? "allow-same-origin allow-scripts" : "allow-same-origin allow-scripts allow-popups"}
-        />
-
-        {/* Mini-chat editor panel */}
-        {editMode && selected && (
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="absolute bottom-4 left-1/2 -translate-x-1/2 w-[min(680px,92%)] rounded-2xl bg-card border border-border shadow-2xl p-4"
-          >
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <MousePointerClick className="w-4 h-4 text-primary" />
-                Selezionato: <code className="text-foreground">{selected.tag.toLowerCase()}</code>
-              </div>
-              <button onClick={() => { setSelected(null); setEditingText(false); }} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
+      <div className="flex-1 min-h-0 flex">
+        {/* Editor panel — fixed on the LEFT, never overlaps the landing */}
+        {editMode && (
+          <aside className="w-80 flex-shrink-0 border-r border-border bg-card overflow-y-auto p-4 flex flex-col gap-4">
+            <div>
+              <h3 className="font-semibold text-foreground text-sm flex items-center gap-2"><Pencil className="w-4 h-4 text-primary" /> Editor</h3>
+              <p className="text-xs text-muted-foreground mt-1">Clicca un elemento o una sezione nella pagina per modificarlo.</p>
             </div>
 
-            {/* element vs section */}
-            <div className="flex items-center gap-1 mb-3 p-1 rounded-lg bg-muted w-fit text-xs">
-              <button onClick={() => setTarget("element")} className={`px-3 py-1 rounded ${target === "element" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"}`}>Elemento</button>
-              <button onClick={() => setTarget("section")} className={`px-3 py-1 rounded ${target === "section" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"}`}>Intera sezione</button>
-            </div>
+            {selected ? (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+                    <MousePointerClick className="w-3.5 h-3.5 text-primary" /> <code className="text-foreground">{selected.tag.toLowerCase()}</code>
+                  </span>
+                  <button onClick={() => { setSelected(null); setEditingText(false); }} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
+                </div>
 
-            <div className="flex items-center gap-2">
-              <input
-                value={instruction}
-                onChange={(e) => setInstruction(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter" && !editing) applyAiEdit(); }}
-                placeholder="Cosa vuoi cambiare? Es. 'rendi il titolo verde'…"
-                className="flex-1 px-4 py-2.5 rounded-lg border border-border bg-background text-sm"
-                disabled={editing}
-              />
-              <button onClick={applyAiEdit} disabled={editing || !instruction.trim()} className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium disabled:opacity-50">
-                {editing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />} Applica
-              </button>
-            </div>
+                <div className="flex items-center gap-1 p-1 rounded-lg bg-muted text-xs">
+                  <button onClick={() => setTarget("element")} className={`flex-1 px-2 py-1 rounded ${target === "element" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"}`}>Elemento</button>
+                  <button onClick={() => setTarget("section")} className={`flex-1 px-2 py-1 rounded ${target === "section" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"}`}>Sezione</button>
+                </div>
 
-            {selected.isText && target === "element" && (
-              <div className="mt-3 flex items-center gap-2">
-                {!editingText ? (
-                  <button onClick={() => { post({ type: "editText", eid: selected.eid }); setEditingText(true); }} className="flex items-center gap-2 text-sm text-primary hover:underline">
-                    <Type className="w-4 h-4" /> Modifica il testo a mano (gratis)
-                  </button>
-                ) : (
-                  <button onClick={() => post({ type: "commitText", eid: selected.eid })} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500 text-white text-sm font-medium">
-                    <Check className="w-4 h-4" /> Salva testo
-                  </button>
+                <textarea
+                  value={instruction}
+                  onChange={(e) => setInstruction(e.target.value)}
+                  placeholder="Cosa vuoi cambiare? Es. 'rendi il titolo verde', 'ingrandisci il bottone'…"
+                  rows={3}
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm resize-none"
+                  disabled={editing}
+                />
+                <button onClick={applyAiEdit} disabled={editing || !instruction.trim()} className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium disabled:opacity-50">
+                  {editing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />} Applica modifica
+                </button>
+
+                {selected.isText && target === "element" && (
+                  <div className="pt-3 border-t border-border">
+                    {!editingText ? (
+                      <button onClick={() => { post({ type: "editText", eid: selected.eid }); setEditingText(true); }} className="flex items-center gap-2 text-sm text-primary hover:underline">
+                        <Type className="w-4 h-4" /> Modifica il testo a mano (gratis)
+                      </button>
+                    ) : (
+                      <div className="space-y-2">
+                        <p className="text-xs text-muted-foreground">Scrivi direttamente nella pagina, poi salva.</p>
+                        <button onClick={() => post({ type: "commitText", eid: selected.eid })} className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-emerald-500 text-white text-sm font-medium">
+                          <Check className="w-4 h-4" /> Salva testo
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 )}
-                {editingText && <span className="text-xs text-muted-foreground">Scrivi direttamente nella pagina, poi salva.</span>}
+              </div>
+            ) : (
+              <div className="text-center text-muted-foreground text-sm py-10 border border-dashed border-border rounded-xl">
+                <MousePointerClick className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                Nessun elemento selezionato
               </div>
             )}
-          </motion.div>
+          </aside>
         )}
+
+        <div className="flex-1 min-h-0 bg-white">
+          <iframe
+            ref={iframeRef}
+            title="Landing"
+            srcDoc={editMode ? injectEditor(html) : html}
+            className="w-full h-full border-0"
+            sandbox={editMode ? "allow-same-origin allow-scripts" : "allow-same-origin allow-scripts allow-popups"}
+          />
+        </div>
       </div>
     </motion.div>
   );
