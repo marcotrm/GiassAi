@@ -7,7 +7,9 @@ import type { SectorDNA } from "./sector-dna.js";
 const SYSTEM_PROMPT = `Sei un designer/sviluppatore frontend d'élite (skill "UX/UI PRO MAX"). Costruisci landing page che convertono, di livello agenzia premium. NON usi template: ogni sito è su misura per l'attività.
 
 OUTPUT:
-- Rispondi SOLO con HTML completo, da <!DOCTYPE html> a </html>. NIENTE markdown, niente \`\`\`.
+- Rispondi SOLO con HTML completo, da <!DOCTYPE html> FINO a </html> incluso. NIENTE markdown, niente \`\`\`.
+- LA PAGINA DEVE ESSERE COMPLETA E CHIUSA: chiudi tutti i tag e termina con </body></html>. Non lasciare la pagina a metà.
+- Scrivi markup EFFICIENTE: usa le classi utility di Tailwind, NON ripetere lunghi stili inline. Mantieni l'HTML compatto ma completo.
 - Stack: TailwindCSS via CDN (<script src="https://cdn.tailwindcss.com"></script>), FontAwesome 6 (<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">), e i Google Fonts forniti.
 - Definisci i colori come CSS variables in :root e usali ovunque. Imposta i font (heading vs body).
 
@@ -71,7 +73,7 @@ Costruisci ora la landing page HTML completa.`;
     system: SYSTEM_PROMPT.replace("{{FORM_ACTION}}", formAction),
     messages: [{ role: "user", content: userContent }],
     temperature: 0.6,
-    maxTokens: 16000,
+    maxTokens: 32000,
     ...(opts.signal ? { signal: opts.signal } : {}),
   });
 
@@ -80,5 +82,10 @@ Costruisci ora la landing page HTML completa.`;
   const start = html.search(/<!DOCTYPE html>|<html/i);
   if (start > 0) html = html.slice(start);
   html = html.replace(/```html?/gi, "").replace(/```/g, "").trim();
+  // Safety net: if the output got cut off, close the document so it still renders.
+  if (!/<\/html>/i.test(html)) {
+    if (!/<\/body>/i.test(html)) html += "\n</body>";
+    html += "\n</html>";
+  }
   return { html, usage };
 }

@@ -4,6 +4,7 @@ import { MousePointerClick, Eye, Target, ArrowRight, PlusCircle, Loader2, Trash2
 import { CreationType } from "../App";
 import { supabase } from "../lib/supabase";
 import { API_BASE, deleteProject } from "../lib/api";
+import LandingView from "../components/LandingView";
 
 interface FunnelProps {
   onOpenCreation: (type: CreationType, ctx?: { projectId?: string }) => void;
@@ -21,6 +22,7 @@ export default function Funnel({ onOpenCreation }: FunnelProps) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Project | null>(null);
 
   async function handleDelete(e: React.MouseEvent, project: Project) {
     e.stopPropagation();
@@ -55,6 +57,21 @@ export default function Funnel({ onOpenCreation }: FunnelProps) {
     }
     fetchProjects();
   }, []);
+
+  if (selected) {
+    return (
+      <LandingView
+        projectId={selected.id}
+        projectName={selected.name}
+        onBack={() => setSelected(null)}
+        onResumeChat={() => onOpenCreation('landing', { projectId: selected.id })}
+        onDeleted={() => {
+          setProjects((prev) => prev.filter((p) => p.id !== selected.id));
+          setSelected(null);
+        }}
+      />
+    );
+  }
 
   if (loading) {
     return (
@@ -98,7 +115,7 @@ export default function Funnel({ onOpenCreation }: FunnelProps) {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: i * 0.1 }}
             key={project.id}
-            onClick={() => onOpenCreation('landing', { projectId: project.id })}
+            onClick={() => setSelected(project)}
             className="glass-panel p-6 rounded-2xl cursor-pointer hover:border-primary/50 transition-all duration-300 group bg-card border-border flex flex-col relative"
           >
             <button

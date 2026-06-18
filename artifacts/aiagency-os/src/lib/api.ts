@@ -52,6 +52,18 @@ export function publishLanding(landingId: string): Promise<{ publishedUrl: strin
   return authedFetch(`/landing/${landingId}/publish`, { method: "POST" });
 }
 
+export interface LandingResponse {
+  landingId: string;
+  isPublished: boolean;
+  publishedUrl: string | null;
+  html: string;
+  def: unknown;
+}
+
+export function getLanding(projectId: string): Promise<LandingResponse> {
+  return authedFetch(`/landing/${projectId}`);
+}
+
 export function deleteProject(id: string): Promise<unknown> {
   return authedFetch(`/projects/${id}`, { method: "DELETE" });
 }

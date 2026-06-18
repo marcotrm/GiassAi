@@ -136,7 +136,7 @@ async function logUsage(orgId: string, sonnetUsage: Usage, haikuUsages: Usage[])
 }
 
 export async function publishLanding(landingId: string): Promise<{ publishedUrl: string }> {
-  const url = `/p/${landingId}`; // served by the publish route; custom hosting is future work
+  const url = `/api/landing/${landingId}/html`; // public route serving the rendered page
   await db
     .update(landingConfigs)
     .set({ isPublished: true, publishedUrl: url })
