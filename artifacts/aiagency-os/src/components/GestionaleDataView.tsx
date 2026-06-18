@@ -34,6 +34,7 @@ export default function GestionaleDataView({ projectId, projectName, onBack, onR
   const [search, setSearch] = useState("");
   const [deletingRow, setDeletingRow] = useState<string | null>(null);
   const [deletingProject, setDeletingProject] = useState(false);
+  const [relOptions, setRelOptions] = useState<Record<string, { id: string; label: string }[]>>({});
 
   useEffect(() => {
     (async () => {
@@ -71,6 +72,30 @@ export default function GestionaleDataView({ projectId, projectName, onBack, onR
   const filteredRows = search.trim()
     ? rows.filter((r) => dataCols.some((c) => String(r[c.name] ?? "").toLowerCase().includes(search.toLowerCase())))
     : rows;
+
+  // Load options for relation fields (show names, store the related row id).
+  useEffect(() => {
+    if (!table || !schema) return;
+    for (const c of table.columns) {
+      if (c.type !== "relation" || !c.relationTo) continue;
+      const target = schema.def.tables.find((t) => t.name === c.relationTo);
+      if (!target) continue;
+      getGestionaleData(projectId, c.relationTo)
+        .then((data) =>
+          setRelOptions((prev) => ({
+            ...prev,
+            [c.name]: data.map((r) => ({ id: String(r["id"]), label: String(r[target.primaryDisplayColumn] ?? r["id"]) })),
+          })),
+        )
+        .catch(() => {});
+    }
+  }, [table, schema, projectId]);
+
+  // Map a relation cell (uuid) to the related record's display label.
+  const relLabel = (col: { relationTo?: string; name: string }, value: unknown): string => {
+    const opt = relOptions[col.name]?.find((o) => o.id === String(value));
+    return opt?.label ?? (value ? String(value) : "—");
+  };
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -211,7 +236,12 @@ export default function GestionaleDataView({ projectId, projectName, onBack, onR
                   {dataCols.map((col) => (
                     <label key={col.name} className="block text-sm">
                       <span className="block mb-1 text-muted-foreground">{col.label}{!col.nullable && <span className="text-rose-500"> *</span>}</span>
-                      {col.type === "enum" ? (
+                      {col.type === "relation" ? (
+                        <select value={form[col.name] ?? ""} onChange={(e) => setForm((f) => ({ ...f, [col.name]: e.target.value }))} className="w-full px-3 py-2 rounded-lg border border-border bg-background">
+                          <option value="">—</option>
+                          {(relOptions[col.name] ?? []).map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
+                        </select>
+                      ) : col.type === "enum" ? (
                         <select value={form[col.name] ?? ""} onChange={(e) => setForm((f) => ({ ...f, [col.name]: e.target.value }))} className="w-full px-3 py-2 rounded-lg border border-border bg-background">
                           <option value="">—</option>
                           {enumValues(col.enumName).map((v) => <option key={v.value} value={v.value}>{v.label}</option>)}
@@ -259,7 +289,7 @@ export default function GestionaleDataView({ projectId, projectName, onBack, onR
                           const id = row["id"] as string;
                           return (
                             <tr key={id ?? i} className="border-b border-border last:border-0 hover:bg-muted/20">
-                              {dataCols.map((c) => <td key={c.name} className="px-4 py-2 text-foreground whitespace-nowrap">{formatCell(row[c.name])}</td>)}
+                              {dataCols.map((c) => <td key={c.name} className="px-4 py-2 text-foreground whitespace-nowrap">{c.type === "relation" ? relLabel(c, row[c.name]) : formatCell(row[c.name])}</td>)}
                               <td className="px-4 py-2">
                                 <button onClick={() => handleDeleteRow(id)} disabled={deletingRow === id} title="Elimina riga" className="text-muted-foreground hover:text-rose-500 transition-colors">
                                   {deletingRow === id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
