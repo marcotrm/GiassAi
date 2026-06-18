@@ -188,6 +188,75 @@ export async function completeJson(opts: CompleteJsonOptions): Promise<CompleteJ
   };
 }
 
+// ============================================================================
+// Non-streaming-API but streamed-collection text completion. Used to generate
+// long HTML (landing pages) — streaming avoids HTTP timeouts on large outputs.
+// ============================================================================
+
+export interface CompleteTextOptions {
+  model: string;
+  system: string;
+  messages: ChatMessage[];
+  temperature?: number;
+  maxTokens?: number;
+  signal?: AbortSignal;
+}
+
+export async function completeText(opts: CompleteTextOptions): Promise<{
+  text: string;
+  usage: { tokensIn: number; tokensOut: number };
+}> {
+  const client = getAnthropicClient();
+  const nonSystemMsgs = opts.messages
+    .filter((m) => m.role !== "system")
+    .map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
+
+  const stream = client.messages.stream({
+    model: opts.model,
+    max_tokens: opts.maxTokens ?? 8192,
+    ...(NO_SAMPLING_PARAMS.has(opts.model) ? {} : { temperature: opts.temperature ?? 0.5 }),
+    system: opts.system,
+    messages: nonSystemMsgs,
+  });
+  if (opts.signal) opts.signal.addEventListener("abort", () => stream.abort(), { once: true });
+
+  const final = await stream.finalMessage();
+  const text = final.content
+    .filter((b): b is Extract<typeof b, { type: "text" }> => b.type === "text")
+    .map((b) => b.text)
+    .join("");
+  return { text, usage: { tokensIn: final.usage.input_tokens, tokensOut: final.usage.output_tokens } };
+}
+
+// Best-effort competitor research via Anthropic's server-side web_search tool.
+// Returns a short insights string; on any failure returns "" (non-blocking).
+export async function researchWithWebSearch(
+  query: string,
+  signal?: AbortSignal,
+): Promise<{ insights: string; usage: { tokensIn: number; tokensOut: number } }> {
+  try {
+    const client = getAnthropicClient();
+    const response = await client.messages.create(
+      {
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 1024,
+        messages: [{ role: "user", content: query }],
+        tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 3 } as never],
+      },
+      signal ? { signal } : undefined,
+    );
+    const text = response.content
+      .filter((b): b is Extract<typeof b, { type: "text" }> => b.type === "text")
+      .map((b) => b.text)
+      .join("\n")
+      .trim();
+    return { insights: text, usage: { tokensIn: response.usage.input_tokens, tokensOut: response.usage.output_tokens } };
+  } catch (err) {
+    logger.warn({ err }, "web_search competitor research failed (non-blocking)");
+    return { insights: "", usage: { tokensIn: 0, tokensOut: 0 } };
+  }
+}
+
 async function streamOpenAI(
   model: string,
   messages: ChatMessage[],

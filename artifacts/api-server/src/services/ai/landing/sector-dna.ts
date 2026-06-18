@@ -1,0 +1,199 @@
+// Per-sector visual DNA (ported & adapted from ScrapingNia's _NICHE_VISUAL_DNA).
+// Drives the bespoke Sonnet HTML build: colors, fonts, gradient, mood, style
+// notes and curated imagery — so the look is chosen by sector, not a template.
+
+export interface SectorDNA {
+  primary: string;
+  secondary: string;
+  accent: string;
+  headingFont: string;
+  bodyFont: string;
+  fontsUrl: string;
+  gradientHero: string;
+  mood: string;
+  styleNotes: string;
+  images: string[]; // curated Unsplash URLs; empty → Sonnet designs without photos
+}
+
+// Curated, real Unsplash image families (hero @1400, others @800).
+const IMG = {
+  fitness: [
+    "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=1400&q=80",
+    "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=800&q=80",
+    "https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=800&q=80",
+    "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=800&q=80",
+    "https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=800&q=80",
+    "https://images.unsplash.com/photo-1540497077202-7c8a3999166f?w=800&q=80",
+  ],
+  restaurant: [
+    "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=1400&q=80",
+    "https://images.unsplash.com/photo-1476224203421-9ac39bcb3327?w=800&q=80",
+    "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&q=80",
+    "https://images.unsplash.com/photo-1559339352-11d035aa65de?w=800&q=80",
+    "https://images.unsplash.com/photo-1544148103-0773bf10d330?w=800&q=80",
+    "https://images.unsplash.com/photo-1424847651672-bf20a4b0982b?w=800&q=80",
+  ],
+  streetfood: [
+    "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=1400&q=80",
+    "https://images.unsplash.com/photo-1553979459-d2229ba7433b?w=800&q=80",
+    "https://images.unsplash.com/photo-1571091718767-18b5b1457add?w=800&q=80",
+    "https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?w=800&q=80",
+    "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&q=80",
+    "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800&q=80",
+  ],
+  dental: [
+    "https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=1400&q=80",
+    "https://images.unsplash.com/photo-1588776814546-1ffbb2c17cda?w=800&q=80",
+    "https://images.unsplash.com/photo-1606811841689-23dfddce3e95?w=800&q=80",
+    "https://images.unsplash.com/photo-1609840114035-3c981b782dfe?w=800&q=80",
+    "https://images.unsplash.com/photo-1598256989800-fe5f95da9787?w=800&q=80",
+    "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=800&q=80",
+  ],
+  hair: [
+    "https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=1400&q=80",
+    "https://images.unsplash.com/photo-1562322140-8baeececf3df?w=800&q=80",
+    "https://images.unsplash.com/photo-1470259078422-826894b933aa?w=800&q=80",
+    "https://images.unsplash.com/photo-1595475038665-ca62e84a5f3f?w=800&q=80",
+    "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=800&q=80",
+    "https://images.unsplash.com/photo-1493256338651-d82f7acb2b38?w=800&q=80",
+  ],
+  creative: [
+    "https://images.unsplash.com/photo-1598300042247-d088f8ab3a91?w=1400&q=80",
+    "https://images.unsplash.com/photo-1611501275019-9b5cda994e8d?w=800&q=80",
+    "https://images.unsplash.com/photo-1562962230-16e3edc43b92?w=800&q=80",
+    "https://images.unsplash.com/photo-1508609349937-5ec4ae374ebf?w=800&q=80",
+    "https://images.unsplash.com/photo-1504701954957-2010ec3bcec1?w=800&q=80",
+    "https://images.unsplash.com/photo-1568515387631-8b650bbcdb90?w=800&q=80",
+  ],
+};
+
+const FONTS = (heading: string, body: string) =>
+  `https://fonts.googleapis.com/css2?family=${heading.replace(/ /g, "+")}:wght@400;500;600;700&family=${body.replace(/ /g, "+")}:wght@300;400;500;600;700&display=swap`;
+
+interface Entry extends SectorDNA {
+  keywords: string[];
+}
+
+const SECTORS: Entry[] = [
+  {
+    keywords: ["palestra", "gym", "fitness", "crossfit", "personal trainer", "centro sportivo"],
+    primary: "#FF6B35", secondary: "#1A1A2E", accent: "#FFFFFF",
+    headingFont: "Rajdhani", bodyFont: "Roboto", fontsUrl: FONTS("Rajdhani", "Roboto"),
+    gradientHero: "linear-gradient(135deg, rgba(10,10,15,0.92) 0%, rgba(255,107,53,0.45) 100%)",
+    mood: "energia esplosiva, trasformazione fisica, motivazione",
+    styleNotes: "Sfondo scuro #0A0A0F con accenti arancio fuoco. Font condensato bold Rajdhani. Statistiche PRIMA/DOPO, counter (2000+ iscritti). Badge PROVA GRATUITA. Foto di atleti in azione.",
+    images: IMG.fitness,
+  },
+  {
+    keywords: ["ristorante", "trattoria", "osteria", "cucina", "fine dining"],
+    primary: "#7B3F00", secondary: "#C9A227", accent: "#E8D5B7",
+    headingFont: "Cormorant Garamond", bodyFont: "Lato", fontsUrl: FONTS("Cormorant Garamond", "Lato"),
+    gradientHero: "linear-gradient(135deg, rgba(28,10,0,0.85) 0%, rgba(123,63,0,0.65) 100%)",
+    mood: "eleganza italiana, atmosfera calda, cucina tradizionale",
+    styleNotes: "Marrone terracotta e oro su crema. Serif Cormorant Garamond elegante. Atmosfera intima, candele, bokeh. Sezione vini e menù stagionale. Quote dello chef.",
+    images: IMG.restaurant,
+  },
+  {
+    keywords: ["pizzeria", "pizza"],
+    primary: "#C0392B", secondary: "#27AE60", accent: "#F39C12",
+    headingFont: "Oswald", bodyFont: "Nunito", fontsUrl: FONTS("Oswald", "Nunito"),
+    gradientHero: "linear-gradient(135deg, rgba(20,10,5,0.86) 0%, rgba(192,57,43,0.6) 100%)",
+    mood: "autentico, conviviale, forno a legna, tradizione napoletana",
+    styleNotes: "Rosso pomodoro e verde basilico. Oswald bold. Foto di pizze fumanti dal forno. Badge 'FORNO A LEGNA', 'IMPASTO 48H'. Menù fotografico con prezzi grandi.",
+    images: IMG.restaurant,
+  },
+  {
+    keywords: ["paninoteca", "paninoterie", "panini", "street food", "burger", "hamburgeria"],
+    primary: "#C0392B", secondary: "#E67E22", accent: "#F39C12",
+    headingFont: "Oswald", bodyFont: "Nunito", fontsUrl: FONTS("Oswald", "Nunito"),
+    gradientHero: "linear-gradient(135deg, rgba(26,10,0,0.88) 0%, rgba(192,57,43,0.65) 100%)",
+    mood: "street food autentico, caldo, rustico e invitante",
+    styleNotes: "Toni caldi rosso/arancio su sfondi carbone. Oswald bold. Badge 'ARTIGIANALE', 'FATTO IN CASA'. Menù fotografico, foto di panini fumanti e ingredienti freschi.",
+    images: IMG.streetfood,
+  },
+  {
+    keywords: ["bar", "caffetteria", "caffè", "cocktail", "pub", "lounge"],
+    primary: "#6F4E37", secondary: "#D4A373", accent: "#FAEDCD",
+    headingFont: "Playfair Display", bodyFont: "Nunito", fontsUrl: FONTS("Playfair Display", "Nunito"),
+    gradientHero: "linear-gradient(135deg, rgba(20,12,6,0.86) 0%, rgba(111,78,55,0.6) 100%)",
+    mood: "accogliente, aromatico, ritrovo quotidiano",
+    styleNotes: "Toni caffè e crema. Foto di tazze, aperitivi, ambiente. Sezione 'aperitivo' e orari. Atmosfera calda.",
+    images: IMG.streetfood,
+  },
+  {
+    keywords: ["dentista", "dentistico", "odontoiatra", "studio dentistico"],
+    primary: "#00A8CC", secondary: "#00D4AA", accent: "#E8F4FD",
+    headingFont: "Nunito Sans", bodyFont: "Source Sans Pro", fontsUrl: FONTS("Nunito Sans", "Source Sans Pro"),
+    gradientHero: "linear-gradient(135deg, rgba(10,22,40,0.9) 0%, rgba(0,168,204,0.5) 100%)",
+    mood: "professionale, fiducia, pulizia, sorrisi sani",
+    styleNotes: "Azzurro e turchese su bianco pulito. Nunito Sans arrotondato. Foto di sorrisi felici. Certificazioni e tecnologie. FAQ paure dentali. Form prenotazione visita gratuita.",
+    images: IMG.dental,
+  },
+  {
+    keywords: ["medico", "clinica", "ambulatorio", "fisioterapista", "fisioterapia", "poliambulatorio", "veterinario"],
+    primary: "#0EA5A4", secondary: "#0F766E", accent: "#CCFBF1",
+    headingFont: "Nunito Sans", bodyFont: "Source Sans Pro", fontsUrl: FONTS("Nunito Sans", "Source Sans Pro"),
+    gradientHero: "linear-gradient(135deg, rgba(8,20,28,0.9) 0%, rgba(14,165,164,0.5) 100%)",
+    mood: "cura, competenza, benessere, rassicurante",
+    styleNotes: "Verde acqua e bianco. Tipografia leggibile e arrotondata. Foto di ambiente clinico curato. Certificazioni, equipe, prenotazione visita.",
+    images: IMG.dental,
+  },
+  {
+    keywords: ["parrucchiere", "barbiere", "hair", "salone"],
+    primary: "#2C3E50", secondary: "#E8C547", accent: "#BDC3C7",
+    headingFont: "Josefin Sans", bodyFont: "Open Sans", fontsUrl: FONTS("Josefin Sans", "Open Sans"),
+    gradientHero: "linear-gradient(135deg, rgba(13,17,23,0.92) 0%, rgba(44,62,80,0.75) 100%)",
+    mood: "stile contemporaneo, professionale, tendenze",
+    styleNotes: "Dark elegante con accenti oro. Josefin Sans geometrico. Gallery portfolio tagli e colore. Sezione 'I nostri stilisti'. Prenotazione online in evidenza.",
+    images: IMG.hair,
+  },
+  {
+    keywords: ["estetista", "estetico", "beauty", "centro estetico", "spa", "nail", "make up"],
+    primary: "#DB2777", secondary: "#1F2937", accent: "#FBCFE8",
+    headingFont: "Poppins", bodyFont: "Open Sans", fontsUrl: FONTS("Poppins", "Open Sans"),
+    gradientHero: "linear-gradient(135deg, rgba(20,12,18,0.88) 0%, rgba(219,39,119,0.55) 100%)",
+    mood: "elegante, glamour, cura di sé, raffinato",
+    styleNotes: "Rosa elegante e antracite. Poppins. Foto curate di trattamenti, dettagli. Listino servizi, prima/dopo, prenotazione.",
+    images: IMG.hair,
+  },
+  {
+    keywords: ["tatuatori", "tatuaggi", "tattoo", "piercing"],
+    primary: "#E63946", secondary: "#F4A261", accent: "#264653",
+    headingFont: "Bebas Neue", bodyFont: "Montserrat", fontsUrl: FONTS("Bebas Neue", "Montserrat"),
+    gradientHero: "linear-gradient(135deg, rgba(10,10,10,0.96) 0%, rgba(230,57,70,0.4) 100%)",
+    mood: "arte, creatività, identità unica, underground premium",
+    styleNotes: "Quasi nero con accenti rosso/arancio. Bebas Neue condensato urbano. Portfolio artwork in griglia. Stili offerti. Prenotazione consulenza gratuita.",
+    images: IMG.creative,
+  },
+  {
+    keywords: ["fotografo", "fotografi", "fotografia", "studio fotografico", "video maker"],
+    primary: "#111827", secondary: "#9CA3AF", accent: "#F59E0B",
+    headingFont: "Bebas Neue", bodyFont: "Montserrat", fontsUrl: FONTS("Bebas Neue", "Montserrat"),
+    gradientHero: "linear-gradient(135deg, rgba(8,8,10,0.9) 0%, rgba(17,24,39,0.6) 100%)",
+    mood: "visivo, artistico, racconto per immagini",
+    styleNotes: "Minimal scuro, la foto è protagonista. Gallery a tutta larghezza. Pacchetti (matrimoni, ritratti). Prenotazione shooting.",
+    images: IMG.creative,
+  },
+];
+
+const DEFAULT_DNA: SectorDNA = {
+  primary: "#4F46E5", secondary: "#0F172A", accent: "#F59E0B",
+  headingFont: "Outfit", bodyFont: "Inter", fontsUrl: FONTS("Outfit", "Inter"),
+  gradientHero: "linear-gradient(135deg, rgba(15,23,42,0.92) 0%, rgba(79,70,229,0.55) 100%)",
+  mood: "moderno, professionale, affidabile",
+  styleNotes: "Stile SaaS moderno: indaco e ambra, tanto spazio, tipografia pulita. Senza foto: usa gradienti, blocchi di colore e icone per un look ordinato e premium.",
+  images: [],
+};
+
+export function pickSectorDNA(sector: string, brief: string): SectorDNA {
+  const hay = `${sector} ${brief}`.toLowerCase();
+  let best: Entry | null = null;
+  let bestScore = 0;
+  for (const e of SECTORS) {
+    const score = e.keywords.reduce((n, k) => (hay.includes(k) ? n + 1 : n), 0);
+    if (score > bestScore) { bestScore = score; best = e; }
+  }
+  if (!best) return DEFAULT_DNA;
+  const { keywords: _k, ...dna } = best;
+  return dna;
+}
