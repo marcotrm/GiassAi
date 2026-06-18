@@ -129,7 +129,12 @@ router.post("/chat", requireAuth, async (req: Request, res: Response) => {
               );
               if (intent.confirmed && intent.brief) {
                 res.write(`data: ${JSON.stringify({ type: "generating" })}\n\n`);
+                // Keep the SSE connection alive during the long (30-60s) build.
+                const heartbeat = setInterval(() => {
+                  try { if (!res.writableEnded) res.write(`: keep-alive\n\n`); } catch { /* ignore */ }
+                }, 15000);
                 const sig = { signal: abortController.signal };
+                try {
                 if (projectType === "gestionale") {
                   const result = await generateGestionale(projectId, req.user!.orgId, intent.brief, sig);
                   res.write(
@@ -162,6 +167,9 @@ router.post("/chat", requireAuth, async (req: Request, res: Response) => {
                       ideasCount: result.ideasCount,
                     })}\n\n`,
                   );
+                }
+                } finally {
+                  clearInterval(heartbeat);
                 }
               }
             } catch (genErr) {
