@@ -31,10 +31,24 @@ function Dashboard() {
   const [creationContext, setCreationContext] = useState<CreationContext | null>(null);
   const [onboarded, setOnboarded] = useState(() => localStorage.getItem("giassai_onboarded") === "1");
 
+  const [autoOpen, setAutoOpen] = useState<{ type: CreationType; projectId: string } | null>(null);
+
   const openCreationRoom = (type: CreationType, ctx?: CreationContext) => {
     setCreationType(type);
     setCreationContext(ctx ?? null);
     setInCreation(true);
+  };
+
+  // Open the real project view (gestionale ERP / landing page), not the chat.
+  const openProject = (project: { id: string; type: CreationType }) => {
+    const section: Record<CreationType, SidebarSection> = {
+      gestionale: "gestionali",
+      landing: "funnel",
+      workflow: "workflow",
+      video_ideas: "control",
+    };
+    setAutoOpen({ type: project.type, projectId: project.id });
+    setCurrentSection(section[project.type]);
   };
 
   return (
@@ -52,18 +66,26 @@ function Dashboard() {
         <DashboardShell
           key="dashboard"
           currentSection={currentSection}
-          onNavigate={(s) => setCurrentSection(s)}
+          onNavigate={(s) => { setCurrentSection(s); setAutoOpen(null); }}
           onOpenCreation={openCreationRoom}
         >
           <AnimatePresence mode="wait">
             {currentSection === "control" && (
-              <ControlRoom key="control" onOpenCreation={openCreationRoom} />
+              <ControlRoom key="control" onOpenCreation={openCreationRoom} onOpenProject={openProject} />
             )}
             {currentSection === "gestionali" && (
-              <Gestionali key="gestionali" onOpenCreation={openCreationRoom} />
+              <Gestionali
+                key="gestionali"
+                onOpenCreation={openCreationRoom}
+                autoOpenId={autoOpen?.type === "gestionale" ? autoOpen.projectId : undefined}
+              />
             )}
             {currentSection === "funnel" && (
-              <Funnel key="funnel" onOpenCreation={openCreationRoom} />
+              <Funnel
+                key="funnel"
+                onOpenCreation={openCreationRoom}
+                autoOpenId={autoOpen?.type === "landing" ? autoOpen.projectId : undefined}
+              />
             )}
             {currentSection === "workflow" && (
               <Workflow key="workflow" onOpenCreation={openCreationRoom} />

@@ -5,17 +5,18 @@ import { CreationType } from "../App";
 import { supabase } from "../lib/supabase";
 import { API_BASE } from "../lib/api";
 
-interface ControlRoomProps {
-  onOpenCreation: (type: CreationType) => void;
-}
-
 interface Project {
   id: string;
   name: string;
   description: string | null;
   type: CreationType;
   status: string;
-  created_at: string;
+  createdAt: string;
+}
+
+interface ControlRoomProps {
+  onOpenCreation: (type: CreationType) => void;
+  onOpenProject: (project: Project) => void;
 }
 
 const TYPE_ICON: Record<string, typeof Database> = {
@@ -24,7 +25,7 @@ const TYPE_ICON: Record<string, typeof Database> = {
   workflow: Network,
 };
 
-export default function ControlRoom({ onOpenCreation }: ControlRoomProps) {
+export default function ControlRoom({ onOpenCreation, onOpenProject }: ControlRoomProps) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -171,7 +172,7 @@ export default function ControlRoom({ onOpenCreation }: ControlRoomProps) {
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.3 + (i * 0.1) }}
                   key={project.id}
-                  onClick={() => onOpenCreation(project.type)}
+                  onClick={() => onOpenProject(project)}
                   data-testid={`project-card-${i}`}
                   className="glass-panel p-6 rounded-2xl cursor-pointer hover:border-primary/50 transition-all duration-300 group hover:-translate-y-1 bg-card border-border relative overflow-hidden"
                 >
@@ -202,7 +203,7 @@ export default function ControlRoom({ onOpenCreation }: ControlRoomProps) {
                     <h3 className="font-bold text-foreground text-lg mb-1">{project.name}</h3>
                     <p className="text-muted-foreground text-sm mb-4">{project.description || "Nessuna descrizione"}</p>
                     <p className="text-xs text-muted-foreground font-mono">
-                      Creato: {new Date(project.created_at).toLocaleDateString("it-IT")}
+                      Creato: {new Date(project.createdAt).toLocaleDateString("it-IT")}
                     </p>
                   </div>
                 </motion.div>

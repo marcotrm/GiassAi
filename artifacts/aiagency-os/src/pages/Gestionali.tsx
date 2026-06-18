@@ -8,6 +8,7 @@ import GestionaleDataView from "../components/GestionaleDataView";
 
 interface GestionaliProps {
   onOpenCreation: (type: CreationType, ctx?: { projectId?: string }) => void;
+  autoOpenId?: string;
 }
 
 interface Project {
@@ -19,7 +20,7 @@ interface Project {
   updatedAt: string;
 }
 
-export default function Gestionali({ onOpenCreation }: GestionaliProps) {
+export default function Gestionali({ onOpenCreation, autoOpenId }: GestionaliProps) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Project | null>(null);
@@ -35,7 +36,12 @@ export default function Gestionali({ onOpenCreation }: GestionaliProps) {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         const all = data.projects ?? data ?? [];
-        setProjects(all.filter((p: Project) => p.type === "gestionale" && p.status !== "archived"));
+        const list = all.filter((p: Project) => p.type === "gestionale" && p.status !== "archived");
+        setProjects(list);
+        if (autoOpenId) {
+          const p = list.find((x: Project) => x.id === autoOpenId);
+          if (p) setSelected(p);
+        }
       } catch (err) {
         console.error("Fetch gestionali error:", err);
       } finally {

@@ -8,6 +8,7 @@ import LandingView from "../components/LandingView";
 
 interface FunnelProps {
   onOpenCreation: (type: CreationType, ctx?: { projectId?: string }) => void;
+  autoOpenId?: string;
 }
 
 interface Project {
@@ -18,7 +19,7 @@ interface Project {
   createdAt: string;
 }
 
-export default function Funnel({ onOpenCreation }: FunnelProps) {
+export default function Funnel({ onOpenCreation, autoOpenId }: FunnelProps) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -48,7 +49,12 @@ export default function Funnel({ onOpenCreation }: FunnelProps) {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         const all = data.projects ?? data ?? [];
-        setProjects(all.filter((p: Project) => p.type === "landing" && p.status !== "archived"));
+        const list = all.filter((p: Project) => p.type === "landing" && p.status !== "archived");
+        setProjects(list);
+        if (autoOpenId) {
+          const p = list.find((x: Project) => x.id === autoOpenId);
+          if (p) setSelected(p);
+        }
       } catch (err) {
         console.error("Fetch funnel error:", err);
       } finally {
