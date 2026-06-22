@@ -1,12 +1,14 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { z } from "zod";
 import { db } from "@workspace/db";
-import { workflows, workflowRuns, pendingApprovals, projects } from "@workspace/db/schema";
-import { WfNode } from "@workspace/api-zod";
+import { workflows, workflowRuns, pendingApprovals, projects, landingConfigs, projectLinks } from "@workspace/db/schema";
+import { WfNode, LandingFormDef } from "@workspace/api-zod";
 import { eq, and, desc } from "drizzle-orm";
 import { requireAuth } from "../middlewares/auth.js";
 import { generateWorkflow, activateWorkflow } from "../services/ai/workflow/orchestrator.js";
 import { runWorkflow, resumeWorkflow } from "../services/workflow/engine.js";
+import { createLandingContact } from "../services/crm/contacts.js";
+import { ensureCrm } from "../services/crm/stages.js";
 import { logger } from "../lib/logger.js";
 
 const router: IRouter = Router();
@@ -81,6 +83,89 @@ router.post("/workflows/:workflowId/activate", requireAuth, async (req: Request,
   }
   await activateWorkflow(workflowId);
   res.json({ workflowId, isActive: true });
+});
+
+// POST /workflows/:projectId/link-landing — connect a workflow project to a landing's
+// contact form so its submissions feed this workflow's CRM (Fase 0).
+const LinkLandingBody = z.object({ landingProjectId: z.string().uuid() });
+router.post("/workflows/:projectId/link-landing", requireAuth, async (req: Request, res: Response) => {
+  const projectId = String(req.params["projectId"]);
+  const parsed = LinkLandingBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid request", details: parsed.error.flatten() });
+    return;
+  }
+  const { landingProjectId } = parsed.data;
+  const orgId = req.user!.orgId;
+  if (!(await ownsProject(projectId, orgId)) || !(await ownsProject(landingProjectId, orgId))) {
+    res.status(404).json({ error: "Project not found" });
+    return;
+  }
+
+  // The landing's contact form provides the formId the trigger listens on.
+  const [landing] = await db
+    .select()
+    .from(landingConfigs)
+    .where(eq(landingConfigs.projectId, landingProjectId))
+    .orderBy(desc(landingConfigs.createdAt))
+    .limit(1);
+  if (!landing) {
+    res.status(400).json({ error: "La landing selezionata non ha ancora una configurazione." });
+    return;
+  }
+  const formsParsed = z.array(LandingFormDef).safeParse(landing.forms);
+  const forms = formsParsed.success ? formsParsed.data : [];
+  const form = forms[0];
+  if (!form) {
+    res.status(400).json({ error: "La landing selezionata non ha un form contatti da collegare." });
+    return;
+  }
+  const formId = form.formId;
+
+  // Linking a landing implies a contact pipeline — make sure a CRM board exists.
+  await ensureCrm(projectId);
+
+  // 1) Remember the link on the workflow project's config.
+  const [proj] = await db.select().from(projects).where(eq(projects.id, projectId)).limit(1);
+  const cfg = (proj?.config && typeof proj.config === "object" ? proj.config : {}) as Record<string, unknown>;
+  await db
+    .update(projects)
+    .set({
+      config: { ...cfg, sourceLandingProjectId: landingProjectId, sourceFormId: formId },
+      updatedAt: new Date().toISOString(),
+    })
+    .where(eq(projects.id, projectId));
+
+  // 2) Point the latest workflow's trigger at this form.
+  const [wf] = await db
+    .select()
+    .from(workflows)
+    .where(eq(workflows.projectId, projectId))
+    .orderBy(desc(workflows.createdAt))
+    .limit(1);
+  if (wf) {
+    const nodes = z.array(WfNode).safeParse(wf.nodes);
+    if (nodes.success) {
+      const updated = nodes.data.map((n) =>
+        n.type === "trigger"
+          ? { ...n, config: { ...n.config, source: "form_submission" as const, formId, sourceProjectId: landingProjectId } }
+          : n,
+      );
+      await db.update(workflows).set({ nodes: updated, updatedAt: new Date().toISOString() }).where(eq(workflows.id, wf.id));
+    }
+  }
+
+  // 3) Point the landing form at this workflow + persist a project link.
+  const updatedForms = forms.map((f, i) =>
+    i === 0 ? { ...f, destination: { kind: "workflow" as const, targetProjectId: projectId } } : f,
+  );
+  await db.update(landingConfigs).set({ forms: updatedForms, updatedAt: new Date().toISOString() }).where(eq(landingConfigs.id, landing.id));
+  await db
+    .insert(projectLinks)
+    .values({ sourceProjectId: landingProjectId, targetProjectId: projectId, linkType: "landing_to_workflow" })
+    .onConflictDoNothing();
+
+  res.json({ ok: true, formId });
 });
 
 // POST /workflows/:workflowId/test — manual run with sample trigger data
@@ -161,12 +246,23 @@ router.post("/hooks/form/:formId", async (req: Request, res: Response) => {
 
     const [proj] = await db.select().from(projects).where(eq(projects.id, wf.projectId)).limit(1);
     if (!proj) continue;
+
+    // Record the lead on the CRM board first — independent of the automation run.
+    const payload = (req.body && typeof req.body === "object" ? req.body : {}) as Record<string, unknown>;
+    let contactId: string | null = null;
+    try {
+      contactId = await createLandingContact(wf.projectId, payload);
+    } catch (err) {
+      logger.error({ err, formId }, "Failed to create CRM contact from form");
+    }
+
     try {
       const result = await runWorkflow(wf.id, req.body, proj.orgId);
-      res.status(202).json({ ok: true, runId: result.runId, status: result.status });
+      res.status(202).json({ ok: true, runId: result.runId, status: result.status, contactId });
     } catch (err) {
       logger.error({ err, formId }, "Form-triggered run failed");
-      res.status(500).json({ error: "Run failed" });
+      // The contact was still captured — report partial success.
+      res.status(202).json({ ok: true, contactId, status: "automation_failed" });
     }
     return;
   }

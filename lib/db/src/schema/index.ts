@@ -82,6 +82,8 @@ export const projectsRelations = relations(projects, ({ one, many }) => ({
   landingConfigs: many(landingConfigs),
   videoProfiles: many(videoProfiles),
   videoIdeas: many(videoIdeas),
+  crmStages: many(crmStages),
+  crmContacts: many(crmContacts),
 }));
 
 export const insertProjectSchema = createInsertSchema(projects).omit({ id: true });
@@ -215,6 +217,61 @@ export const pendingApprovalsRelations = relations(pendingApprovals, ({ one }) =
 export const insertPendingApprovalSchema = createInsertSchema(pendingApprovals).omit({ id: true });
 export type InsertPendingApproval = typeof pendingApprovals.$inferInsert;
 export type PendingApproval = typeof pendingApprovals.$inferSelect;
+
+// ============================================================================
+// CRM STAGES — the Kanban columns for a workflow project's contacts.
+// Generated per-sector at workflow creation, then editable by the user.
+// ============================================================================
+
+export const crmStages = pgTable("crm_stages", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  color: text("color").notNull().default("#64748b"),
+  position: integer("position").notNull().default(0),
+  // 'normal' | 'won' (es. appuntamento fissato) | 'lost'
+  kind: text("kind").notNull().default("normal"),
+  createdAt: timestamp("created_at", { mode: "string" }).defaultNow().notNull(),
+});
+
+export const crmStagesRelations = relations(crmStages, ({ one, many }) => ({
+  project: one(projects, { fields: [crmStages.projectId], references: [projects.id] }),
+  contacts: many(crmContacts),
+}));
+
+export const insertCrmStageSchema = createInsertSchema(crmStages).omit({ id: true });
+export type InsertCrmStage = typeof crmStages.$inferInsert;
+export type CrmStage = typeof crmStages.$inferSelect;
+
+// ============================================================================
+// CRM CONTACTS — a lead/contact tracked on the Kanban board.
+// Arrives from a linked landing form (source='landing') or added by hand.
+// ============================================================================
+
+export const crmContacts = pgTable("crm_contacts", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  stageId: uuid("stage_id").references(() => crmStages.id, { onDelete: "set null" }),
+  name: text("name"),
+  email: text("email"),
+  phone: text("phone"),
+  source: text("source").notNull().default("manual"), // 'landing' | 'manual'
+  fields: jsonb("fields").default({}), // extra form fields
+  notes: text("notes").default(""),
+  aiDraft: text("ai_draft"), // AI-generated first outreach message (Fase 2)
+  position: integer("position").notNull().default(0), // order within a stage
+  createdAt: timestamp("created_at", { mode: "string" }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { mode: "string" }).defaultNow().notNull(),
+});
+
+export const crmContactsRelations = relations(crmContacts, ({ one }) => ({
+  project: one(projects, { fields: [crmContacts.projectId], references: [projects.id] }),
+  stage: one(crmStages, { fields: [crmContacts.stageId], references: [crmStages.id] }),
+}));
+
+export const insertCrmContactSchema = createInsertSchema(crmContacts).omit({ id: true });
+export type InsertCrmContact = typeof crmContacts.$inferInsert;
+export type CrmContact = typeof crmContacts.$inferSelect;
 
 // ============================================================================
 // GESTIONALE SCHEMAS

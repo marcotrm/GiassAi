@@ -6,6 +6,7 @@ import projectsRouter from "./projects.js";
 import gestionaliRouter from "./gestionali.js";
 import workflowsRouter from "./workflows.js";
 import landingRouter from "./landing.js";
+import crmRouter from "./crm.js";
 
 const router: IRouter = Router();
 
@@ -16,5 +17,6 @@ router.use(projectsRouter);
 router.use(gestionaliRouter);
 router.use(workflowsRouter);
 router.use(landingRouter);
+router.use(crmRouter);
 
 export default router;

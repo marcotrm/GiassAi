@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import type { WorkflowDef } from "@workspace/api-zod";
 import { getOrgCatalog } from "../../ecosystem/org-catalog.js";
 import { runWorkflowArchitect } from "./architect-agent.js";
+import { applyCrmPlan } from "../../crm/stages.js";
 import { isDemoMode, pickDemoWorkflow } from "../demo/index.js";
 import { MODELS, computeCostUsd } from "../models.js";
 import { logger } from "../../../lib/logger.js";
@@ -67,6 +68,13 @@ export async function generateWorkflow(
     logger.warn({ err }, "Failed to write ai_usage_log");
   }
 
+  // Provision a CRM board only if this workflow is a contact pipeline.
+  try {
+    await applyCrmPlan(projectId, brief, opts.signal);
+  } catch (err) {
+    logger.warn({ err, projectId }, "Failed to apply CRM plan");
+  }
+
   logger.info({ projectId, workflowId: wf!.id, nodes: def.nodes.length }, "Workflow generated");
   return { workflowId: wf!.id, def };
 }
@@ -78,6 +86,11 @@ async function demoGenerateWorkflow(projectId: string, brief: string): Promise<G
     .insert(workflows)
     .values({ projectId, name: def.name, description: def.description ?? null, nodes: def.nodes, isActive: false })
     .returning();
+  try {
+    await applyCrmPlan(projectId, brief);
+  } catch (err) {
+    logger.warn({ err, projectId }, "Failed to apply CRM plan (demo)");
+  }
   logger.info({ projectId, workflowId: wf!.id, demo: true }, "Workflow generated (demo)");
   return { workflowId: wf!.id, def };
 }

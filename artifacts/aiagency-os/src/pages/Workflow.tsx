@@ -3,24 +3,18 @@ import { motion } from "framer-motion";
 import { Network, Activity, Play, ArrowRight, PlusCircle, Loader2, Trash2 } from "lucide-react";
 import { CreationType } from "../App";
 import { supabase } from "../lib/supabase";
-import { API_BASE, deleteProject } from "../lib/api";
+import { API_BASE, deleteProject, type Project } from "../lib/api";
+import CrmBoard from "../components/CrmBoard";
 
 interface WorkflowProps {
   onOpenCreation: (type: CreationType, ctx?: { projectId?: string }) => void;
-}
-
-interface Project {
-  id: string;
-  name: string;
-  type: string;
-  status: string;
-  createdAt: string;
 }
 
 export default function Workflow({ onOpenCreation }: WorkflowProps) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [openProject, setOpenProject] = useState<Project | null>(null);
 
   async function handleDelete(e: React.MouseEvent, project: Project) {
     e.stopPropagation();
@@ -56,6 +50,16 @@ export default function Workflow({ onOpenCreation }: WorkflowProps) {
     fetchProjects();
   }, []);
 
+  if (openProject) {
+    return (
+      <CrmBoard
+        project={openProject}
+        onBack={() => setOpenProject(null)}
+        onOpenEditor={() => onOpenCreation("workflow", { projectId: openProject.id })}
+      />
+    );
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -85,12 +89,21 @@ export default function Workflow({ onOpenCreation }: WorkflowProps) {
   }
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
       className="p-8 space-y-6"
     >
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold text-foreground">I tuoi workflow</h2>
+        <button
+          onClick={() => onOpenCreation('workflow')}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
+        >
+          <PlusCircle className="w-4 h-4" /> Nuovo workflow
+        </button>
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {projects.map((project, i) => (
           <motion.div
@@ -98,7 +111,11 @@ export default function Workflow({ onOpenCreation }: WorkflowProps) {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: i * 0.1 }}
             key={project.id}
-            onClick={() => onOpenCreation('workflow', { projectId: project.id })}
+            onClick={() =>
+              project.config?.["crmEnabled"]
+                ? setOpenProject(project)
+                : onOpenCreation("workflow", { projectId: project.id })
+            }
             className="glass-panel p-6 rounded-2xl cursor-pointer hover:border-primary/50 transition-all duration-300 group bg-card border-border flex flex-col"
           >
             <div className="flex justify-between items-start mb-4">
@@ -124,7 +141,12 @@ export default function Workflow({ onOpenCreation }: WorkflowProps) {
               </div>
             </div>
             
-            <h3 className="font-bold text-foreground text-xl mb-4">{project.name}</h3>
+            <div className="flex items-center gap-2 mb-4">
+              <h3 className="font-bold text-foreground text-xl">{project.name}</h3>
+              {project.config?.["crmEnabled"] ? (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide bg-primary/10 text-primary border border-primary/20">CRM</span>
+              ) : null}
+            </div>
             
             <div className="mt-auto space-y-3">
               <div className="flex items-center justify-between text-sm">
@@ -133,12 +155,12 @@ export default function Workflow({ onOpenCreation }: WorkflowProps) {
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground flex items-center gap-2"><Play className="w-4 h-4"/> Creato</span>
-                <span>{new Date(project.createdAt).toLocaleDateString('it-IT')}</span>
+                <span>{project.createdAt ? new Date(project.createdAt).toLocaleDateString('it-IT') : '—'}</span>
               </div>
             </div>
 
             <div className="mt-6 pt-4 border-t border-border flex items-center justify-between text-primary font-medium text-sm group-hover:translate-x-1 transition-transform">
-              Apri Editor
+              {project.config?.["crmEnabled"] ? "Apri CRM" : "Apri Editor"}
               <ArrowRight className="w-4 h-4" />
             </div>
           </motion.div>

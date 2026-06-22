@@ -30,6 +30,8 @@ export interface Project {
   name: string;
   type: "gestionale" | "landing" | "workflow" | "video_ideas";
   status: string;
+  config?: Record<string, unknown> | null;
+  createdAt?: string;
 }
 
 export function createProject(body: {
@@ -38,6 +40,106 @@ export function createProject(body: {
   description?: string;
 }): Promise<Project> {
   return authedFetch<Project>("/projects", { method: "POST", body: JSON.stringify(body) });
+}
+
+export function getProjects(): Promise<Project[]> {
+  return authedFetch<Project[]>("/projects");
+}
+
+// ============================================================================
+// CRM / Kanban
+// ============================================================================
+
+export interface CrmStage {
+  id: string;
+  projectId: string;
+  name: string;
+  color: string;
+  position: number;
+  kind: "normal" | "won" | "lost";
+}
+
+export interface CrmContact {
+  id: string;
+  projectId: string;
+  stageId: string | null;
+  name: string | null;
+  email: string | null;
+  phone: string | null;
+  source: string;
+  fields: Record<string, unknown> | null;
+  notes: string | null;
+  aiDraft: string | null;
+  position: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BusinessScheda {
+  nomeAttivita: string;
+  settore: string;
+  orari: string;
+  servizi: string;
+  obiettivo: string;
+  tono: string;
+  noteAggiuntive: string;
+}
+
+export function getCrmBoard(projectId: string): Promise<{ stages: CrmStage[]; contacts: CrmContact[] }> {
+  return authedFetch(`/crm/${projectId}`);
+}
+
+export function createStage(projectId: string, body: { name: string; color?: string; kind?: CrmStage["kind"] }): Promise<CrmStage> {
+  return authedFetch(`/crm/${projectId}/stages`, { method: "POST", body: JSON.stringify(body) });
+}
+
+export function updateStage(stageId: string, body: Partial<Pick<CrmStage, "name" | "color" | "kind" | "position">>): Promise<CrmStage> {
+  return authedFetch(`/crm/stages/${stageId}`, { method: "PATCH", body: JSON.stringify(body) });
+}
+
+export function deleteStage(stageId: string): Promise<{ ok: boolean }> {
+  return authedFetch(`/crm/stages/${stageId}`, { method: "DELETE" });
+}
+
+export function createContact(
+  projectId: string,
+  body: { name?: string; email?: string; phone?: string; stageId?: string; notes?: string },
+): Promise<CrmContact> {
+  return authedFetch(`/crm/${projectId}/contacts`, { method: "POST", body: JSON.stringify(body) });
+}
+
+export function updateContact(
+  contactId: string,
+  body: Partial<{ name: string | null; email: string | null; phone: string | null; stageId: string | null; notes: string; aiDraft: string | null; position: number }>,
+): Promise<CrmContact> {
+  return authedFetch(`/crm/contacts/${contactId}`, { method: "PATCH", body: JSON.stringify(body) });
+}
+
+export function deleteContact(contactId: string): Promise<{ ok: boolean }> {
+  return authedFetch(`/crm/contacts/${contactId}`, { method: "DELETE" });
+}
+
+export function getScheda(projectId: string): Promise<BusinessScheda | null> {
+  return authedFetch(`/crm/${projectId}/scheda`);
+}
+
+export function saveScheda(projectId: string, scheda: BusinessScheda): Promise<{ ok: boolean }> {
+  return authedFetch(`/crm/${projectId}/scheda`, { method: "PUT", body: JSON.stringify(scheda) });
+}
+
+export function prefillScheda(projectId: string): Promise<BusinessScheda> {
+  return authedFetch(`/crm/${projectId}/scheda/prefill`, { method: "POST" });
+}
+
+export function generateContactDraft(contactId: string): Promise<{ draft: string }> {
+  return authedFetch(`/crm/contacts/${contactId}/generate-draft`, { method: "POST" });
+}
+
+export function linkLandingToWorkflow(projectId: string, landingProjectId: string): Promise<{ ok: boolean; formId: string }> {
+  return authedFetch(`/workflows/${projectId}/link-landing`, {
+    method: "POST",
+    body: JSON.stringify({ landingProjectId }),
+  });
 }
 
 export function deployGestionale(schemaId: string): Promise<{ schemaName: string; statementsRun: number; seededRows: number }> {
