@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Loader2, Plus, AlertCircle, Table2, X, Search, Trash2, MessageSquare, Database } from "lucide-react";
+import { ArrowLeft, Loader2, Plus, AlertCircle, Table2, X, Search, Trash2, MessageSquare, Database, LayoutDashboard, TrendingUp } from "lucide-react";
 import {
   getGestionaleSchema,
   getGestionaleData,
@@ -23,7 +23,9 @@ const SYSTEM_COLS = new Set(["id", "org_id", "created_at", "updated_at"]);
 
 export default function GestionaleDataView({ projectId, projectName, onBack, onResumeChat, onDeleted }: Props) {
   const [schema, setSchema] = useState<GestionaleSchemaResponse | null>(null);
-  const [activeTable, setActiveTable] = useState<string>("");
+  const [activeTable, setActiveTable] = useState<string>("__overview__");
+  const [overviewCounts, setOverviewCounts] = useState<Record<string, number>>({});
+  const [overviewRecent, setOverviewRecent] = useState<{ table: string; label: string; rows: Record<string, unknown>[] }[]>([]);
   const [rows, setRows] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState(true);
   const [rowsLoading, setRowsLoading] = useState(false);
@@ -41,7 +43,22 @@ export default function GestionaleDataView({ projectId, projectName, onBack, onR
       try {
         const s = await getGestionaleSchema(projectId);
         setSchema(s);
-        if (s.isDeployed && s.def.tables[0]) setActiveTable(s.def.tables[0].name);
+        if (s.isDeployed) {
+          // Load overview counts in parallel
+          const counts: Record<string, number> = {};
+          const recent: { table: string; label: string; rows: Record<string, unknown>[] }[] = [];
+          await Promise.all(
+            s.def.tables.map(async (t) => {
+              try {
+                const rows = await getGestionaleData(projectId, t.name);
+                counts[t.name] = rows.length;
+                if (rows.length > 0) recent.push({ table: t.name, label: t.label, rows: rows.slice(-3).reverse() });
+              } catch { counts[t.name] = 0; }
+            }),
+          );
+          setOverviewCounts(counts);
+          setOverviewRecent(recent);
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Errore nel caricamento");
       } finally {
@@ -191,6 +208,16 @@ export default function GestionaleDataView({ projectId, projectName, onBack, onR
         <div className="flex flex-1 min-h-0">
           {/* Sidebar — modules (tables) */}
           <aside className="w-56 border-r border-border p-3 overflow-y-auto flex-shrink-0">
+            <nav className="space-y-1 mb-3">
+              <button
+                onClick={() => { setActiveTable("__overview__"); setShowForm(false); setSearch(""); }}
+                className={`w-full text-left px-3 py-2 rounded-lg text-sm flex items-center gap-2 transition-colors font-medium ${
+                  activeTable === "__overview__" ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-muted"
+                }`}
+              >
+                <LayoutDashboard className="w-4 h-4 flex-shrink-0" /> Overview
+              </button>
+            </nav>
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground px-2 mb-2">Moduli</p>
             <nav className="space-y-1">
               {schema.def.tables.map((t) => (
@@ -209,7 +236,73 @@ export default function GestionaleDataView({ projectId, projectName, onBack, onR
 
           {/* Main */}
           <div className="flex-1 min-w-0 flex flex-col">
-            <div className="flex items-center justify-between gap-4 px-6 py-4 border-b border-border">
+            {activeTable === "__overview__" ? (
+              <div className="flex-1 overflow-auto p-6 space-y-6">
+                <div className="flex items-center gap-2 mb-2">
+                  <TrendingUp className="w-5 h-5 text-primary" />
+                  <h3 className="font-bold text-foreground text-lg">Overview</h3>
+                  <span className="text-xs text-muted-foreground">— riepilogo dei dati nel gestionale</span>
+                </div>
+
+                {/* KPI cards */}
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {schema.def.tables.map((t) => {
+                    const count = overviewCounts[t.name] ?? 0;
+                    return (
+                      <button
+                        key={t.name}
+                        onClick={() => setActiveTable(t.name)}
+                        className="glass-panel p-4 rounded-xl border border-border bg-card text-left hover:border-primary/40 transition-colors group"
+                      >
+                        <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
+                          <Table2 className="w-3 h-3" /> {t.label}
+                        </p>
+                        <p className="text-3xl font-mono font-bold text-foreground group-hover:text-primary transition-colors">{count}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{count === 1 ? "record" : "record"}</p>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Recent activity */}
+                {overviewRecent.length > 0 ? (
+                  <div>
+                    <h4 className="text-sm font-semibold text-foreground mb-3">Attività recente</h4>
+                    <div className="space-y-3">
+                      {overviewRecent.map(({ table: tName, label, rows }) => {
+                        const tDef = schema.def.tables.find((t) => t.name === tName);
+                        const displayCol = tDef?.primaryDisplayColumn ?? tDef?.columns[0]?.name;
+                        return (
+                          <div key={tName} className="rounded-xl border border-border bg-card p-4">
+                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{label}</p>
+                            <div className="space-y-1">
+                              {rows.map((row, i) => (
+                                <div key={i} className="flex items-center gap-2 text-sm">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-primary/60 flex-shrink-0" />
+                                  <span className="text-foreground truncate">
+                                    {displayCol ? String(row[displayCol] ?? "—") : JSON.stringify(row).slice(0, 60)}
+                                  </span>
+                                  {Boolean(row["created_at"]) && (
+                                    <span className="text-muted-foreground text-xs ml-auto flex-shrink-0">
+                                      {new Date(row["created_at"] as string).toLocaleDateString("it-IT")}
+                                    </span>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-dashed border-border p-8 text-center text-muted-foreground text-sm">
+                    Nessun dato ancora — aggiungi i primi record dai moduli per vedere l'attività qui.
+                  </div>
+                )}
+              </div>
+            ) : (
+            <><div className="flex items-center justify-between gap-4 px-6 py-4 border-b border-border">
               <div>
                 <h3 className="font-semibold text-foreground">{table?.label}</h3>
                 <p className="text-xs text-muted-foreground">{filteredRows.length} record</p>
@@ -304,6 +397,8 @@ export default function GestionaleDataView({ projectId, projectName, onBack, onR
                 )}
               </div>
             </div>
+            </>
+            )}
           </div>
         </div>
       )}
