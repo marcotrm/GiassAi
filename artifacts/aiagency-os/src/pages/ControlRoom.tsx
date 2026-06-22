@@ -287,7 +287,7 @@ export default function ControlRoom({ onOpenCreation, onOpenProject }: ControlRo
                           <button
                             onClick={e => startRename(e, project)}
                             title="Rinomina"
-                            className="opacity-0 group-hover/name:opacity-100 transition-opacity text-muted-foreground hover:text-primary flex-shrink-0"
+                            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-md bg-primary/10 text-primary hover:bg-primary/20 flex-shrink-0"
                           >
                             <Pencil className="w-3.5 h-3.5" />
                           </button>
