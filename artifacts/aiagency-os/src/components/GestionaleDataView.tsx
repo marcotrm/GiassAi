@@ -79,7 +79,7 @@ export default function GestionaleDataView({ projectId, projectName, onBack, onR
   }, [projectId]);
 
   useEffect(() => {
-    if (activeTable) loadRows(activeTable);
+    if (activeTable && activeTable !== "__overview__") loadRows(activeTable);
   }, [activeTable, loadRows]);
 
   const table: GestionaleTableDef | undefined = schema?.def.tables.find((t) => t.name === activeTable);
