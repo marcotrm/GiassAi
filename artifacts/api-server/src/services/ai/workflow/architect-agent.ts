@@ -16,6 +16,7 @@ REGOLE FERREE:
 - 4 tipi di nodo: trigger, action, ai_task, human_in_the_loop.
 - Le variabili nei template usano l'ID del nodo che le produce: {{trigger.data.CAMPO}} per i dati del trigger, {{ID_NODO.CAMPO}} per l'output di un nodo precedente. NON usare nomi generici come {{ai_task.output}}: usa l'id reale del nodo.
 - Una variabile può riferire SOLO output di nodi PRECEDENTI nella catena.
+- I trigger con source "form_submission" ricevono i dati dal form di contatto standard delle landing GiassAi, che ha SEMPRE e SOLO questi campi: nome, email, telefono, messaggio. Usa ESCLUSIVAMENTE {{trigger.data.nome}}, {{trigger.data.email}}, {{trigger.data.telefono}}, {{trigger.data.messaggio}}. NON inventare campi inglesi come full_name, phone o message.
 - Per le azioni "supabase" con operation "insert_row": imposta targetProjectId all'id di un GESTIONALE DEPLOYATO del catalogo, params.table a una sua tabella reale, e inputMapping solo su colonne reali di quella tabella.
 - Genera i projectLinks necessari (es. form_to_workflow, workflow_to_gestionale) con gli id reali dei progetti coinvolti.
 - Usa gli id dei progetti dal CATALOGO fornito. Se manca un progetto necessario, modella comunque il workflow ma lascia targetProjectId vuoto.`;
