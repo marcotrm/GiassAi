@@ -145,8 +145,8 @@ export interface CompleteJsonResult {
  * Forces the model to call `tool` and returns its raw input object.
  * The caller is responsible for validating `data` with the authoritative Zod schema.
  */
-// Opus 4.8 / 4.7 and Fable 5 removed sampling params — sending temperature 400s.
-const NO_SAMPLING_PARAMS = new Set(["claude-opus-4-8", "claude-opus-4-7", "claude-fable-5"]);
+// Opus 4.8 / 4.7, Fable 5 and Sonnet 5 removed sampling params — sending temperature 400s.
+const NO_SAMPLING_PARAMS = new Set(["claude-opus-4-8", "claude-opus-4-7", "claude-fable-5", "claude-sonnet-5"]);
 
 export async function completeJson(opts: CompleteJsonOptions): Promise<CompleteJsonResult> {
   const client = getAnthropicClient();
