@@ -7,7 +7,7 @@ export const MODELS = {
   /** Critical reasoning: schema/workflow/landing structure. Called once per creation. */
   architect: "claude-opus-4-8",
   /** Heavy creative volume: landing HTML + copy. */
-  builder: "claude-sonnet-4-6",
+  builder: "claude-sonnet-5",
   /** Background task execution, per-table fan-out, workflow ai_tasks. */
   executor: "claude-haiku-4-5-20251001",
 } as const;
@@ -17,7 +17,7 @@ export type ModelRole = keyof typeof MODELS;
 // USD pricing per 1M tokens (input / output). Current Anthropic list prices.
 const PRICING: Record<string, { in: number; out: number }> = {
   "claude-opus-4-8": { in: 5, out: 25 },
-  "claude-sonnet-4-6": { in: 3, out: 15 },
+  "claude-sonnet-5": { in: 3, out: 15 },
   "claude-haiku-4-5-20251001": { in: 1, out: 5 },
 };
 
