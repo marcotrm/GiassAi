@@ -15,6 +15,12 @@ export interface Usage {
   tokensIn: number;
   tokensOut: number;
 }
+
+export interface LayoutConcept {
+  heroStyle: string;       // es. "split immagine/testo", "full-bleed con overlay", "centrato minimal"
+  sezioni: string[];       // 6-9 sezioni scelte PER questa attivita', in ordine
+  dettaglioFirma: string;  // un elemento di design unico che rende il sito "suo"
+}
 const NO_USAGE: Usage = { tokensIn: 0, tokensOut: 0 };
 
 // ---------------------------------------------------------------- UX/UI (Sonnet)
@@ -23,7 +29,7 @@ export async function designVisualIdentity(
   inspiration: SectorDNA,
   brief: string,
   signal?: AbortSignal,
-): Promise<{ dna: SectorDNA; usage: Usage }> {
+): Promise<{ dna: SectorDNA; layout: LayoutConcept | null; usage: Usage }> {
   try {
     const { data, usage } = await completeJson({
       model: MODELS.builder, // Sonnet
@@ -37,6 +43,15 @@ export async function designVisualIdentity(
         "quei colori sono VINCOLANTI: convertili in hex curati e usali come primary/secondary, costruendo il resto " +
         "della palette intorno a loro (non intorno al settore). Se il brief riporta anche 'Colori dal logo: #...' " +
         "quegli hex hanno PRIORITA' ASSOLUTA (vengono dal logo vero del cliente): usali tali e quali. " +
+        "Oltre ai colori progetti anche l'ARCHITETTURA della pagina, su misura: scegli lo stile del hero " +
+        "(full-bleed con overlay / split immagine-testo / centrato minimal / con card sovrapposta...), " +
+        "componi 6-9 sezioni PENSATE per questa attivita' scegliendo e adattando tra: menu'/listino con prezzi " +
+        "indicativi, portfolio/galleria, il team, come lavoriamo (processo a step), prima/dopo, numeri, " +
+        "testimonianze, FAQ, zone servite/mappa, orari, certificazioni/trust, promo del momento, storia " +
+        "dell'attivita', CTA finale... (un ristorante ha bisogno del menu', un idraulico delle urgenze h24, " +
+        "un parrucchiere del portfolio: NON usare la stessa scaletta per tutti). Aggiungi un DETTAGLIO FIRMA: " +
+        "un elemento di design unico e memorabile per questo brand (es. pattern, divisori particolari, " +
+        "timeline, badge caratteristico). Contatti+form ci sono sempre in fondo. " +
         "Rispondi solo con lo strumento emit_design.",
       messages: [
         {
@@ -53,7 +68,7 @@ export async function designVisualIdentity(
         description: "Identita' visiva della landing",
         inputSchema: {
           type: "object",
-          required: ["primary", "secondary", "accent", "headingFont", "bodyFont", "gradientHero", "mood", "styleNotes"],
+          required: ["primary", "secondary", "accent", "headingFont", "bodyFont", "gradientHero", "mood", "styleNotes", "heroStyle", "sezioni", "dettaglioFirma"],
           properties: {
             primary: { type: "string", description: "hex" },
             secondary: { type: "string", description: "hex" },
@@ -63,6 +78,9 @@ export async function designVisualIdentity(
             gradientHero: { type: "string", description: "CSS linear-gradient con rgba, overlay scuro leggibile" },
             mood: { type: "string" },
             styleNotes: { type: "string", description: "indicazioni operative di stile per il builder (3-5 frasi)" },
+            heroStyle: { type: "string", description: "stile del hero scelto per questa attivita'" },
+            sezioni: { type: "array", items: { type: "string" }, description: "6-9 sezioni su misura, in ordine" },
+            dettaglioFirma: { type: "string", description: "elemento di design unico per questo brand" },
           },
         },
       },
@@ -83,10 +101,18 @@ export async function designVisualIdentity(
       styleNotes: d["styleNotes"] || inspiration.styleNotes,
       images: inspiration.images,
     };
-    return { dna, usage };
+    const dd = data as Record<string, unknown>;
+    const layout: LayoutConcept | null = Array.isArray(dd["sezioni"]) && (dd["sezioni"] as string[]).length >= 4
+      ? {
+          heroStyle: String(dd["heroStyle"] || "full-bleed con overlay"),
+          sezioni: (dd["sezioni"] as string[]).slice(0, 10),
+          dettaglioFirma: String(dd["dettaglioFirma"] || ""),
+        }
+      : null;
+    return { dna, layout, usage };
   } catch (err) {
     logger.warn({ err }, "UX/UI agent failed, using sector inspiration");
-    return { dna: inspiration, usage: NO_USAGE };
+    return { dna: inspiration, layout: null, usage: NO_USAGE };
   }
 }
 

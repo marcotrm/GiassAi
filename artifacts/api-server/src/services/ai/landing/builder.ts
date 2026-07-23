@@ -2,7 +2,7 @@ import type { BusinessProfile } from "@workspace/api-zod";
 import { completeText } from "../model-adapter.js";
 import { MODELS } from "../models.js";
 import type { SectorDNA } from "./sector-dna.js";
-import type { CopyPack, SeoPack } from "./agents.js";
+import type { CopyPack, SeoPack, LayoutConcept } from "./agents.js";
 
 // The "UX/UI PRO MAX" designer brief — encodes modern landing best practices.
 const SYSTEM_PROMPT = `Sei un designer/sviluppatore frontend d'élite (skill "UX/UI PRO MAX"). Costruisci landing page che convertono, di livello agenzia premium. NON usi template: ogni sito è su misura per l'attività.
@@ -27,16 +27,7 @@ LOGO: se il brief non fornisce un logo, disegna un LOGO TIPOGRAFICO curato nella
 
 COPY: scrivi tu il copy in ITALIANO, persuasivo e specifico per questa attività (hero, chi siamo, servizi, perché noi, testimonianze realistiche, FAQ, contatti). Usa il NOME dell'attività ovunque. NESSUN placeholder tipo [Nome] o Lorem ipsum.
 
-STRUTTURA (sezioni, ricche e complete):
-1. Navbar sticky (logo testuale + link + bottone CTA)
-2. Hero (immagine 1 in background con overlay + gradiente settore, H1, sottotitolo, CTA)
-3. Chi siamo (immagine 2, storia/valori, perché sceglierci)
-4. Servizi/Offerta (griglia di 3-4 card con icone; usa immagini 3,4,5 se presenti)
-5. Numeri/Punti di forza (stat o benefici con icone)
-6. Galleria/Dettaglio (immagine 6 in evidenza, o layout senza foto se non ce ne sono)
-7. Testimonianze (3 recensioni 5 stelle con FontAwesome)
-8. FAQ (3-4 domande, accordion <details>)
-9. Contatti con FORM reale + Footer
+STRUTTURA: l'ARCHITETTURA della pagina la decide l'art director ed e' DIVERSA per ogni attivita' (te la passo nel brief: stile del hero, elenco sezioni in ordine, dettaglio firma). SEGUILA FEDELMENTE: costruisci ogni sezione indicata in modo ricco e completo, variando i layout tra le sezioni (griglie, split, timeline, accordion, card sovrapposte, bande diagonali...) cosi' che il sito non sembri MAI un template. Se non ricevi un'architettura, usa questa di riserva: navbar sticky, hero d'impatto, chi siamo, servizi, numeri, testimonianze, FAQ, contatti con FORM + footer. In ogni caso: navbar sticky in testa e in fondo la sezione contatti col FORM reale + footer.
 
 IMMAGINI: se ti vengono fornite immagini, USALE TUTTE distribuite nelle sezioni (in <img> o background-image). Se NON ci sono immagini, progetta un layout elegante SENZA foto (gradienti, blocchi di colore, icone grandi, pattern) — comunque premium.
 
@@ -50,9 +41,10 @@ export async function buildLandingHtml(opts: {
   seo?: SeoPack | null;
   copy?: CopyPack | null;
   logoDataUri?: string;
+  layout?: LayoutConcept | null;
   signal?: AbortSignal;
 }): Promise<{ html: string; usage: { tokensIn: number; tokensOut: number } }> {
-  const { profile, dna, competitorInsights, formId, seo, copy, logoDataUri } = opts;
+  const { profile, dna, competitorInsights, formId, seo, copy, logoDataUri, layout } = opts;
   const formAction = `/api/hooks/form/${formId}`;
 
   const userContent = `ATTIVITÀ:
@@ -83,7 +75,11 @@ ${competitorInsights ? `INSIGHT COMPETITOR (usali per differenziare il messaggio
 ${logoDataUri ? `LOGO DEL CLIENTE (PNG trasparente): inserisci ESATTAMENTE <img src="{{LOGO_SRC}}" alt="${profile.businessName}" class="h-12 w-auto object-contain"> nella navbar e (h-10) nel footer — il segnaposto verra' sostituito dal sistema, NON modificarlo. REGOLE DI ELEGANZA: niente riquadri o card intorno al logo, niente sfondi bianchi dietro; il logo respira da solo con un po' di padding. Se la navbar e' scura e temi poca leggibilita', rendi la navbar chiara (bianco/crema) invece di incorniciare il logo. Nel hero NON ripetere il logo. Accanto al logo in navbar niente nome ripetuto se il logo contiene gia' il nome. NON disegnare un logo tipografico.
 ` : ""}FORM_ACTION da usare nel form contatti: ${formAction}
 
-Costruisci ora la landing page HTML completa.`;
+${layout ? `ARCHITETTURA DELLA PAGINA (decisa dall'art director per QUESTA attivita' — seguila):
+- Stile hero: ${layout.heroStyle}
+- Sezioni in ordine: ${layout.sezioni.map((z, i) => `${i + 1}. ${z}`).join("  ")}
+- Dettaglio firma da integrare nel design: ${layout.dettaglioFirma}
+` : ""}Costruisci ora la landing page HTML completa.`;
 
   const { text, usage } = await completeText({
     model: MODELS.builder, // Sonnet

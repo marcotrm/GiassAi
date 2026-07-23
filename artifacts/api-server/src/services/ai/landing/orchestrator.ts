@@ -77,6 +77,7 @@ export async function generateLanding(
     seo: seoRes.seo,
     copy: copyRes.copy,
     ...(opts.logoDataUri ? { logoDataUri: opts.logoDataUri } : {}),
+    layout: uxui.layout,
     ...(opts.signal ? { signal: opts.signal } : {}),
   });
 
