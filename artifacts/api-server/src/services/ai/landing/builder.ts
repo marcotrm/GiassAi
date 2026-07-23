@@ -80,7 +80,7 @@ ${copy ? `COPY DEL COPYWRITER (usalo FEDELMENTE, puoi solo rifinire per il layou
 ${JSON.stringify(copy, null, 2)}
 ` : ""}
 ${competitorInsights ? `INSIGHT COMPETITOR (usali per differenziare il messaggio):\n${competitorInsights}\n` : ""}
-${logoDataUri ? `LOGO DEL CLIENTE: il cliente ha fornito il suo logo. Nella navbar e nel footer inserisci ESATTAMENTE questo tag (il segnaposto verra' sostituito dal sistema, NON modificarlo): <img src="{{LOGO_SRC}}" alt="${profile.businessName}" class="h-10 w-auto"> — accanto puoi mettere il nome. NON disegnare un logo tipografico.
+${logoDataUri ? `LOGO DEL CLIENTE (PNG trasparente): inserisci ESATTAMENTE <img src="{{LOGO_SRC}}" alt="${profile.businessName}" class="h-12 w-auto object-contain"> nella navbar e (h-10) nel footer — il segnaposto verra' sostituito dal sistema, NON modificarlo. REGOLE DI ELEGANZA: niente riquadri o card intorno al logo, niente sfondi bianchi dietro; il logo respira da solo con un po' di padding. Se la navbar e' scura e temi poca leggibilita', rendi la navbar chiara (bianco/crema) invece di incorniciare il logo. Nel hero NON ripetere il logo. Accanto al logo in navbar niente nome ripetuto se il logo contiene gia' il nome. NON disegnare un logo tipografico.
 ` : ""}FORM_ACTION da usare nel form contatti: ${formAction}
 
 Costruisci ora la landing page HTML completa.`;
