@@ -48,7 +48,7 @@ export async function generateLanding(
   projectId: string,
   orgId: string,
   brief: string,
-  opts: { signal?: AbortSignal } = {},
+  opts: { signal?: AbortSignal; logoDataUri?: string } = {},
 ): Promise<GenerateLandingResult> {
   if (isDemoMode()) return demoGenerateLanding(projectId, brief);
 
@@ -76,6 +76,7 @@ export async function generateLanding(
     formId,
     seo: seoRes.seo,
     copy: copyRes.copy,
+    ...(opts.logoDataUri ? { logoDataUri: opts.logoDataUri } : {}),
     ...(opts.signal ? { signal: opts.signal } : {}),
   });
 

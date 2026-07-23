@@ -49,9 +49,10 @@ export async function buildLandingHtml(opts: {
   formId: string;
   seo?: SeoPack | null;
   copy?: CopyPack | null;
+  logoDataUri?: string;
   signal?: AbortSignal;
 }): Promise<{ html: string; usage: { tokensIn: number; tokensOut: number } }> {
-  const { profile, dna, competitorInsights, formId, seo, copy } = opts;
+  const { profile, dna, competitorInsights, formId, seo, copy, logoDataUri } = opts;
   const formAction = `/api/hooks/form/${formId}`;
 
   const userContent = `ATTIVITÀ:
@@ -79,7 +80,8 @@ ${copy ? `COPY DEL COPYWRITER (usalo FEDELMENTE, puoi solo rifinire per il layou
 ${JSON.stringify(copy, null, 2)}
 ` : ""}
 ${competitorInsights ? `INSIGHT COMPETITOR (usali per differenziare il messaggio):\n${competitorInsights}\n` : ""}
-FORM_ACTION da usare nel form contatti: ${formAction}
+${logoDataUri ? `LOGO DEL CLIENTE: il cliente ha fornito il suo logo. Nella navbar e nel footer inserisci ESATTAMENTE questo tag (il segnaposto verra' sostituito dal sistema, NON modificarlo): <img src="{{LOGO_SRC}}" alt="${profile.businessName}" class="h-10 w-auto"> — accanto puoi mettere il nome. NON disegnare un logo tipografico.
+` : ""}FORM_ACTION da usare nel form contatti: ${formAction}
 
 Costruisci ora la landing page HTML completa.`;
 
@@ -97,6 +99,7 @@ Costruisci ora la landing page HTML completa.`;
   const start = html.search(/<!DOCTYPE html>|<html/i);
   if (start > 0) html = html.slice(start);
   html = html.replace(/```html?/gi, "").replace(/```/g, "").trim();
+  if (logoDataUri) html = html.split("{{LOGO_SRC}}").join(logoDataUri);
   // Safety net: if the output got cut off, close the document so it still renders.
   if (!/<\/html>/i.test(html)) {
     if (!/<\/body>/i.test(html)) html += "\n</body>";

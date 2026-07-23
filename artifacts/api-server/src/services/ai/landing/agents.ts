@@ -35,7 +35,9 @@ export async function designVisualIdentity(
         "Vincoli: contrasto leggibile, font Google reali, colori coerenti tra loro. " +
         "REGOLA SUPREMA: se il brief riporta colori indicati DAL CLIENTE (es. 'Colori del brand: rosso e nero'), " +
         "quei colori sono VINCOLANTI: convertili in hex curati e usali come primary/secondary, costruendo il resto " +
-        "della palette intorno a loro (non intorno al settore). Rispondi solo con lo strumento emit_design.",
+        "della palette intorno a loro (non intorno al settore). Se il brief riporta anche 'Colori dal logo: #...' " +
+        "quegli hex hanno PRIORITA' ASSOLUTA (vengono dal logo vero del cliente): usali tali e quali. " +
+        "Rispondi solo con lo strumento emit_design.",
       messages: [
         {
           role: "user",

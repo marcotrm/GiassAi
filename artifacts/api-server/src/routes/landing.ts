@@ -10,7 +10,10 @@ import { logger } from "../lib/logger.js";
 
 const router: IRouter = Router();
 
-const GenerateBody = z.object({ brief: z.string().trim().min(1) });
+const GenerateBody = z.object({
+  brief: z.string().trim().min(1),
+  logoDataUri: z.string().trim().max(600_000).optional(), // data URI del logo del cliente
+});
 
 async function ownsProject(projectId: string, orgId: string): Promise<boolean> {
   const [p] = await db
@@ -41,7 +44,9 @@ router.post("/landing/:projectId/generate", requireAuth, async (req: Request, re
     return;
   }
   try {
-    const result = await generateLanding(projectId, req.user!.orgId, parsed.data.brief);
+    const result = await generateLanding(projectId, req.user!.orgId, parsed.data.brief, {
+      ...(parsed.data.logoDataUri ? { logoDataUri: parsed.data.logoDataUri } : {}),
+    });
     res.status(201).json(result);
   } catch (err) {
     logger.error({ err, projectId }, "Landing generation failed");
