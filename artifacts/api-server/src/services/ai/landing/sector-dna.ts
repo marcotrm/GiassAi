@@ -65,6 +65,46 @@ const IMG = {
     "https://images.unsplash.com/photo-1504701954957-2010ec3bcec1?w=800&q=80",
     "https://images.unsplash.com/photo-1568515387631-8b650bbcdb90?w=800&q=80",
   ],
+  business: [
+    "https://images.unsplash.com/photo-1497366216548-37526070297c?w=1400&q=80",
+    "https://images.unsplash.com/photo-1556761175-b413da4baf72?w=800&q=80",
+    "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800&q=80",
+    "https://images.unsplash.com/photo-1521791136064-7986c2920216?w=800&q=80",
+    "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&q=80",
+    "https://images.unsplash.com/photo-1497366811353-6870744d04b2?w=800&q=80",
+  ],
+  legal: [
+    "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=1400&q=80",
+    "https://images.unsplash.com/photo-1521791136064-7986c2920216?w=800&q=80",
+    "https://images.unsplash.com/photo-1497366811353-6870744d04b2?w=800&q=80",
+    "https://images.unsplash.com/photo-1553877522-43269d4ea984?w=800&q=80",
+    "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=800&q=80",
+    "https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80",
+  ],
+  realestate: [
+    "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=1400&q=80",
+    "https://images.unsplash.com/photo-1416339306562-f3d12fefd36f?w=800&q=80",
+    "https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80",
+    "https://images.unsplash.com/photo-1521791136064-7986c2920216?w=800&q=80",
+    "https://images.unsplash.com/photo-1553877522-43269d4ea984?w=800&q=80",
+    "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=800&q=80",
+  ],
+  shop: [
+    "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1400&q=80",
+    "https://images.unsplash.com/photo-1554469384-e58fac16e23a?w=800&q=80",
+    "https://images.unsplash.com/photo-1497366811353-6870744d04b2?w=800&q=80",
+    "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&q=80",
+    "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800&q=80",
+    "https://images.unsplash.com/photo-1556761175-b413da4baf72?w=800&q=80",
+  ],
+  auto: [
+    "https://images.unsplash.com/photo-1487754180451-c456f719a1fc?w=1400&q=80",
+    "https://images.unsplash.com/photo-1416339306562-f3d12fefd36f?w=800&q=80",
+    "https://images.unsplash.com/photo-1553877522-43269d4ea984?w=800&q=80",
+    "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=800&q=80",
+    "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800&q=80",
+    "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&q=80",
+  ],
 };
 
 const FONTS = (heading: string, body: string) =>
@@ -174,6 +214,60 @@ const SECTORS: Entry[] = [
     styleNotes: "Minimal scuro, la foto è protagonista. Gallery a tutta larghezza. Pacchetti (matrimoni, ritratti). Prenotazione shooting.",
     images: IMG.creative,
   },
+  {
+    keywords: ["consulenza", "consulente", "agenzia", "marketing", "servizi alle imprese", "business", "software", "web agency", "commercialista", "contabile"],
+    primary: "#1D4ED8", secondary: "#0F172A", accent: "#38BDF8",
+    headingFont: "Outfit", bodyFont: "Inter", fontsUrl: FONTS("Outfit", "Inter"),
+    gradientHero: "linear-gradient(135deg, rgba(15,23,42,0.92) 0%, rgba(29,78,216,0.55) 100%)",
+    mood: "competenza, risultati misurabili, partner di crescita",
+    styleNotes: "Blu professionale su slate scuro. Outfit pulito. Sezione risultati con numeri (fatturato, clienti). Case study o processo in 3 step. CTA 'consulenza gratuita'.",
+    images: IMG.business,
+  },
+  {
+    keywords: ["avvocato", "studio legale", "legale", "notaio"],
+    primary: "#1E293B", secondary: "#B45309", accent: "#F1F5F9",
+    headingFont: "Playfair Display", bodyFont: "Source Sans Pro", fontsUrl: FONTS("Playfair Display", "Source Sans Pro"),
+    gradientHero: "linear-gradient(135deg, rgba(10,15,25,0.94) 0%, rgba(30,41,59,0.75) 100%)",
+    mood: "autorevolezza, riservatezza, precisione",
+    styleNotes: "Blu notte e ottone. Serif autorevole. Aree di competenza in card sobrie. Bio dei professionisti. CTA 'richiedi un parere'.",
+    images: IMG.legal,
+  },
+  {
+    keywords: ["immobiliare", "agenzia immobiliare", "case", "affitti", "real estate"],
+    primary: "#0F766E", secondary: "#134E4A", accent: "#FBBF24",
+    headingFont: "Outfit", bodyFont: "Inter", fontsUrl: FONTS("Outfit", "Inter"),
+    gradientHero: "linear-gradient(135deg, rgba(8,20,18,0.9) 0%, rgba(15,118,110,0.55) 100%)",
+    mood: "fiducia, casa, investimento sicuro",
+    styleNotes: "Verde petrolio e ambra. Immobili in card con foto grandi. Valutazione gratuita in evidenza. Zone servite.",
+    images: IMG.realestate,
+  },
+  {
+    keywords: ["negozio", "boutique", "abbigliamento", "shop", "store", "gioielleria", "ottica", "svapo", "sigarette elettroniche"],
+    primary: "#7C3AED", secondary: "#111827", accent: "#F59E0B",
+    headingFont: "Poppins", bodyFont: "Inter", fontsUrl: FONTS("Poppins", "Inter"),
+    gradientHero: "linear-gradient(135deg, rgba(17,24,39,0.9) 0%, rgba(124,58,237,0.5) 100%)",
+    mood: "prodotti curati, esperienza in negozio, novita'",
+    styleNotes: "Viola e ambra su scuro. Vetrina prodotti in griglia. Orari e indicazioni ben visibili. Novita'/promo in evidenza.",
+    images: IMG.shop,
+  },
+  {
+    keywords: ["officina", "meccanico", "gommista", "carrozzeria", "auto", "moto", "elettrauto"],
+    primary: "#DC2626", secondary: "#1C1917", accent: "#FACC15",
+    headingFont: "Oswald", bodyFont: "Roboto", fontsUrl: FONTS("Oswald", "Roboto"),
+    gradientHero: "linear-gradient(135deg, rgba(12,10,9,0.92) 0%, rgba(220,38,38,0.5) 100%)",
+    mood: "affidabilita', rapidita', mani esperte",
+    styleNotes: "Rosso e giallo su antracite. Oswald bold. Servizi con tempi chiari (tagliando in giornata). Preventivo gratuito. Badge esperienza.",
+    images: IMG.auto,
+  },
+  {
+    keywords: ["idraulico", "elettricista", "impresa edile", "ristrutturazioni", "imbianchino", "fabbro", "giardiniere", "pulizie"],
+    primary: "#EA580C", secondary: "#1E293B", accent: "#FDBA74",
+    headingFont: "Outfit", bodyFont: "Roboto", fontsUrl: FONTS("Outfit", "Roboto"),
+    gradientHero: "linear-gradient(135deg, rgba(15,23,42,0.92) 0%, rgba(234,88,12,0.55) 100%)",
+    mood: "concretezza, intervento rapido, lavoro fatto bene",
+    styleNotes: "Arancio cantiere su blu scuro. Interventi/urgenze con numero in evidenza. Prima/dopo dei lavori. Preventivo gratuito.",
+    images: IMG.business,
+  },
 ];
 
 const DEFAULT_DNA: SectorDNA = {
@@ -181,8 +275,9 @@ const DEFAULT_DNA: SectorDNA = {
   headingFont: "Outfit", bodyFont: "Inter", fontsUrl: FONTS("Outfit", "Inter"),
   gradientHero: "linear-gradient(135deg, rgba(15,23,42,0.92) 0%, rgba(79,70,229,0.55) 100%)",
   mood: "moderno, professionale, affidabile",
-  styleNotes: "Stile SaaS moderno: indaco e ambra, tanto spazio, tipografia pulita. Senza foto: usa gradienti, blocchi di colore e icone per un look ordinato e premium.",
-  images: [],
+  styleNotes: "Stile SaaS moderno: indaco e ambra, tanto spazio, tipografia pulita. Usa le foto fornite per hero e sezioni, con overlay scuro per un look ordinato e premium.",
+  // Mai piu' landing senza foto: il default usa il set business generico.
+  images: IMG.business,
 };
 
 export function pickSectorDNA(sector: string, brief: string): SectorDNA {
