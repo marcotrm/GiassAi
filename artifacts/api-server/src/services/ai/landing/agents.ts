@@ -32,7 +32,10 @@ export async function designVisualIdentity(
         "palette (hex), coppia di Google Fonts (heading+body), gradiente hero, mood e note di stile operative. " +
         "NON ricadere nel cliche' del settore: parti dall'ispirazione fornita ma DIFFERENZIA davvero in base a " +
         "nome, brief, target e tono di QUESTA attivita' (due ristoranti non devono uscire uguali). " +
-        "Vincoli: contrasto leggibile, font Google reali, colori coerenti tra loro. Rispondi solo con lo strumento emit_design.",
+        "Vincoli: contrasto leggibile, font Google reali, colori coerenti tra loro. " +
+        "REGOLA SUPREMA: se il brief riporta colori indicati DAL CLIENTE (es. 'Colori del brand: rosso e nero'), " +
+        "quei colori sono VINCOLANTI: convertili in hex curati e usali come primary/secondary, costruendo il resto " +
+        "della palette intorno a loro (non intorno al settore). Rispondi solo con lo strumento emit_design.",
       messages: [
         {
           role: "user",

@@ -23,6 +23,8 @@ REGOLE DI DESIGN (applicale con rigore):
 - CTA evidenti e ripetute (hero + sezione finale). Bottoni grandi col colore accent.
 - Niente "AI slop": evita Inter/Arial generici se i font del settore sono altri, evita gradienti viola su bianco a caso. Segui il mood del settore.
 
+LOGO: se il brief non fornisce un logo, disegna un LOGO TIPOGRAFICO curato nella navbar e nel footer: monogramma o nome stilizzato coi colori del brand (es. iniziale in un quadrato col colore primary + nome accanto). Deve sembrare un logo vero, non solo testo.
+
 COPY: scrivi tu il copy in ITALIANO, persuasivo e specifico per questa attività (hero, chi siamo, servizi, perché noi, testimonianze realistiche, FAQ, contatti). Usa il NOME dell'attività ovunque. NESSUN placeholder tipo [Nome] o Lorem ipsum.
 
 STRUTTURA (sezioni, ricche e complete):
