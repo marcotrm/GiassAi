@@ -285,10 +285,15 @@ const DEFAULT_DNA: SectorDNA = {
 
 export function pickSectorDNA(sector: string, brief: string): SectorDNA {
   const hay = `${sector} ${brief}`.toLowerCase();
+  // Match a PAROLA INTERA: "bar" non deve matchare dentro "barberia"/"barbiere".
+  const hasWord = (k: string) => {
+    const esc = k.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return new RegExp(`(^|[^a-zà-ù])${esc}([^a-zà-ù]|$)`, "i").test(hay);
+  };
   let best: Entry | null = null;
   let bestScore = 0;
   for (const e of SECTORS) {
-    const score = e.keywords.reduce((n, k) => (hay.includes(k) ? n + 1 : n), 0);
+    const score = e.keywords.reduce((n, k) => (hasWord(k) ? n + 1 : n), 0);
     if (score > bestScore) { bestScore = score; best = e; }
   }
   if (!best) return DEFAULT_DNA;
