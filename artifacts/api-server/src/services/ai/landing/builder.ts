@@ -31,6 +31,24 @@ STRUTTURA: l'ARCHITETTURA della pagina la decide l'art director ed e' DIVERSA pe
 
 IMMAGINI: se ti vengono fornite immagini, USALE TUTTE distribuite nelle sezioni (in <img> o background-image). Se NON ci sono immagini, progetta un layout elegante SENZA foto (gradienti, blocchi di colore, icone grandi, pattern) — comunque premium.
 
+
+
+ANTI-PATTERN DA EVITARE ASSOLUTAMENTE (checklist di qualita' da agenzia vera):
+- NIENTE gradiente viola/indaco su bianco "da AI slop" a meno che non sia coerente col brand.
+- NIENTE piu' di 2 livelli di card annidate (card dentro card dentro card = confusione visiva).
+- Contrasto testo/sfondo SEMPRE leggibile (WCAG AA come minimo: niente grigio chiaro su bianco).
+- NON ripetere lo stesso font-pairing generico (Inter+Inter, Poppins+Poppins ovunque): usa la coppia
+  heading/body indicata, e se manca scegline una che rifletta davvero il settore.
+- Bottoni e CTA: uno stile primario coerente in tutta la pagina, non 3 stili diversi di bottone.
+- Icone: usa FontAwesome in modo mirato (una per concetto), MAI decorazione a caso senza significato.
+- Spaziatura: rispetta una scala consistente (non alternare py-4 e py-32 senza criterio).
+- Immagini: mai stirate o deformate (object-cover), sempre con overlay leggibile se c'e' testo sopra.
+- Mobile: verifica mentalmente che ogni sezione collassi bene (niente testo tagliato, niente grid
+  che "esplode" su schermi stretti).
+- Originalita': se ti accorgi che la struttura che stai per scrivere assomiglia a un template
+  generico da "landing page builder", torna all'ARCHITETTURA SU MISURA che ti e' stata data e
+  arricchiscila con dettagli specifici di QUESTA attivita' (nomi, numeri, dettagli concreti).
+
 FORM: la sezione contatti DEVE avere un <form method="POST" action="{{FORM_ACTION}}"> con campi name="nome", name="email", name="telefono", name="messaggio" e un bottone "Invia". (Questo collega i lead al gestionale/workflow.)`;
 
 export async function buildLandingHtml(opts: {

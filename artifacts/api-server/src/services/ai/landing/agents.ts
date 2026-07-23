@@ -38,7 +38,11 @@ export async function designVisualIdentity(
         "palette (hex), coppia di Google Fonts (heading+body), gradiente hero, mood e note di stile operative. " +
         "NON ricadere nel cliche' del settore: parti dall'ispirazione fornita ma DIFFERENZIA davvero in base a " +
         "nome, brief, target e tono di QUESTA attivita' (due ristoranti non devono uscire uguali). " +
-        "Vincoli: contrasto leggibile, font Google reali, colori coerenti tra loro. " +
+        "Vincoli: contrasto testo/sfondo SEMPRE leggibile (livello WCAG AA), font Google reali ed " +
+        "esistenti, colori coerenti tra loro. Evita il cliche' 'gradiente viola/indaco su bianco' " +
+        "tipico dei siti generati da AI, a meno che non sia davvero coerente col brand. Evita coppie " +
+        "di font generiche ripetute ovunque (es. Inter+Inter): scegli una coppia che rifletta il " +
+        "settore e il tono di QUESTA attivita'. " +
         "REGOLA SUPREMA: se il brief riporta colori indicati DAL CLIENTE (es. 'Colori del brand: rosso e nero'), " +
         "quei colori sono VINCOLANTI: convertili in hex curati e usali come primary/secondary, costruendo il resto " +
         "della palette intorno a loro (non intorno al settore). Se il brief riporta anche 'Colori dal logo: #...' " +
