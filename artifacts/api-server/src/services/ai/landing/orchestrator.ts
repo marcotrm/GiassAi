@@ -101,7 +101,7 @@ export async function generateLanding(
 
   await persistIdeas(projectId, ideas);
   const sonnetUsage = { tokensIn: buildUsage.tokensIn + uxui.usage.tokensIn + copyRes.usage.tokensIn, tokensOut: buildUsage.tokensOut + uxui.usage.tokensOut + copyRes.usage.tokensOut };
-  await logUsage(orgId, sonnetUsage, [analystUsage, compUsage, ideasUsage, seoRes.usage, imgRes.usage]);
+  await logUsage(orgId, sonnetUsage, [analystUsage, comp.usage, ideasUsage, seoRes.usage, imgRes.usage]);
 
   logger.info({ projectId, landingId: lc!.id, sector: profile.sector, ideas: ideas.length }, "Landing generated (multi-agent pipeline)");
   return { landingId: lc!.id, def, html, ideasCount: ideas.length };
