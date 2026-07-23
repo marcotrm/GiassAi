@@ -7,6 +7,7 @@ import { analyzeBusiness } from "./analyst.js";
 import { researchCompetitors } from "./competitor.js";
 import { generateSocialIdeas } from "./social-ideas.js";
 import { buildLandingHtml } from "./builder.js";
+import { designVisualIdentity, generateSeo, writeCopy, findImages } from "./agents.js";
 import { pickSectorDNA } from "./sector-dna.js";
 import { renderLandingHtml } from "../../landing/html-renderer.js";
 import { isDemoMode, pickDemoLanding } from "../demo/index.js";
@@ -37,9 +38,11 @@ const CONTACT_FORM = (formId: string) => ({
 });
 
 /**
- * Bespoke landing pipeline (no template): Haiku analyst → sector visual DNA →
- * competitor web research → Sonnet builds the full HTML with UX/UI guidance →
- * Haiku social ideas → persist.
+ * Bespoke landing pipeline multi-agente (orchestrata, Sonnet come cervello):
+ *   Haiku analyst → in PARALLELO: UX/UI (Sonnet, identita' su misura) +
+ *   competitor research + SEO (Haiku) + immagini (Unsplash API / set curati)
+ *   → Copy (Sonnet) → Dev (Sonnet assembla l'HTML) → Haiku social ideas → persist.
+ * Ogni agente ha un fallback: la generazione non si blocca mai per un singolo guasto.
  */
 export async function generateLanding(
   projectId: string,
@@ -50,8 +53,20 @@ export async function generateLanding(
   if (isDemoMode()) return demoGenerateLanding(projectId, brief);
 
   const { profile, usage: analystUsage } = await analyzeBusiness(brief, opts.signal);
-  const dna = pickSectorDNA(profile.sector, brief);
-  const { insights, usage: compUsage } = await researchCompetitors(profile, opts.signal);
+  const inspiration = pickSectorDNA(profile.sector, brief);
+
+  // Squadra in parallelo: art director, ricerca competitor, SEO, foto.
+  const [uxui, comp, seoRes, imgRes] = await Promise.all([
+    designVisualIdentity(profile, inspiration, brief, opts.signal),
+    researchCompetitors(profile, opts.signal),
+    generateSeo(profile, opts.signal),
+    findImages(profile, inspiration.images, opts.signal),
+  ]);
+  const dna = { ...uxui.dna, images: imgRes.images };
+  const insights = comp.insights;
+
+  // Copywriter dedicato (usa gli insight competitor).
+  const copyRes = await writeCopy(profile, insights, opts.signal);
 
   const formId = randomUUID();
   const { html, usage: buildUsage } = await buildLandingHtml({
@@ -59,6 +74,8 @@ export async function generateLanding(
     dna,
     competitorInsights: insights,
     formId,
+    seo: seoRes.seo,
+    copy: copyRes.copy,
     ...(opts.signal ? { signal: opts.signal } : {}),
   });
 
@@ -83,9 +100,10 @@ export async function generateLanding(
     .returning();
 
   await persistIdeas(projectId, ideas);
-  await logUsage(orgId, buildUsage, [analystUsage, compUsage, ideasUsage]);
+  const sonnetUsage = { tokensIn: buildUsage.tokensIn + uxui.usage.tokensIn + copyRes.usage.tokensIn, tokensOut: buildUsage.tokensOut + uxui.usage.tokensOut + copyRes.usage.tokensOut };
+  await logUsage(orgId, sonnetUsage, [analystUsage, compUsage, ideasUsage, seoRes.usage, imgRes.usage]);
 
-  logger.info({ projectId, landingId: lc!.id, sector: profile.sector, ideas: ideas.length }, "Landing generated (Sonnet build)");
+  logger.info({ projectId, landingId: lc!.id, sector: profile.sector, ideas: ideas.length }, "Landing generated (multi-agent pipeline)");
   return { landingId: lc!.id, def, html, ideasCount: ideas.length };
 }
 

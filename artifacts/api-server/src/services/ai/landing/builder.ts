@@ -2,6 +2,7 @@ import type { BusinessProfile } from "@workspace/api-zod";
 import { completeText } from "../model-adapter.js";
 import { MODELS } from "../models.js";
 import type { SectorDNA } from "./sector-dna.js";
+import type { CopyPack, SeoPack } from "./agents.js";
 
 // The "UX/UI PRO MAX" designer brief — encodes modern landing best practices.
 const SYSTEM_PROMPT = `Sei un designer/sviluppatore frontend d'élite (skill "UX/UI PRO MAX"). Costruisci landing page che convertono, di livello agenzia premium. NON usi template: ogni sito è su misura per l'attività.
@@ -44,15 +45,17 @@ export async function buildLandingHtml(opts: {
   dna: SectorDNA;
   competitorInsights: string;
   formId: string;
+  seo?: SeoPack | null;
+  copy?: CopyPack | null;
   signal?: AbortSignal;
 }): Promise<{ html: string; usage: { tokensIn: number; tokensOut: number } }> {
-  const { profile, dna, competitorInsights, formId } = opts;
+  const { profile, dna, competitorInsights, formId, seo, copy } = opts;
   const formAction = `/api/hooks/form/${formId}`;
 
   const userContent = `ATTIVITÀ:
 ${JSON.stringify({ businessName: profile.businessName, sector: profile.sector, location: profile.location, usp: profile.usp, targetAudience: profile.targetAudience, tone: profile.tone }, null, 2)}
 
-DESIGN SYSTEM DEL SETTORE (rispettalo):
+DESIGN SYSTEM SU MISURA (creato dall'art director per QUESTA attività — rispettalo):
 - Colori: primary ${dna.primary}, secondary ${dna.secondary}, accent ${dna.accent}
 - Font: heading "${dna.headingFont}", body "${dna.bodyFont}"
 - Google Fonts: ${dna.fontsUrl}
@@ -63,6 +66,16 @@ DESIGN SYSTEM DEL SETTORE (rispettalo):
 IMMAGINI DA USARE (${dna.images.length}):
 ${dna.images.length ? dna.images.map((u, i) => `  ${i + 1}. ${u}`).join("\n") : "  (nessuna immagine — progetta senza foto)"}
 
+${seo ? `SEO (inseriscilo fedelmente):
+- <title>: ${seo.title}
+- <meta name="description">: ${seo.metaDescription}
+- H1 del hero: ${seo.h1}
+- Keyword da far comparire naturalmente nei testi: ${seo.keywords.join(", ")}
+- Inserisci in <head> questo JSON-LD: <script type="application/ld+json">${seo.jsonLd}</script>
+` : ""}
+${copy ? `COPY DEL COPYWRITER (usalo FEDELMENTE, puoi solo rifinire per il layout):
+${JSON.stringify(copy, null, 2)}
+` : ""}
 ${competitorInsights ? `INSIGHT COMPETITOR (usali per differenziare il messaggio):\n${competitorInsights}\n` : ""}
 FORM_ACTION da usare nel form contatti: ${formAction}
 

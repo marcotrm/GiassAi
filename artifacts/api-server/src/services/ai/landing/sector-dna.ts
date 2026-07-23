@@ -110,6 +110,9 @@ const IMG = {
 const FONTS = (heading: string, body: string) =>
   `https://fonts.googleapis.com/css2?family=${heading.replace(/ /g, "+")}:wght@400;500;600;700&family=${body.replace(/ /g, "+")}:wght@300;400;500;600;700&display=swap`;
 
+/** URL Google Fonts per una coppia heading/body (usato anche dall'agente UX/UI). */
+export const fontsUrlFor = FONTS;
+
 interface Entry extends SectorDNA {
   keywords: string[];
 }
